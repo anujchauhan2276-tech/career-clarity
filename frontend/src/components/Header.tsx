@@ -6,7 +6,8 @@ import { cn } from "../lib/utils";
 import { useState, useRef, useEffect } from "react";
 
 export default function Header() {
-  const { user, logout, setLoginModalOpen } = useAuth();
+  // FIX: Removed setLoginModalOpen
+  const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,7 +49,7 @@ export default function Header() {
           )}
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
-               <img src="\src\assets\images\career_clarity_logo_1779860461640.png" className="w-full h-full object-cover mix-blend-multiply" alt="Career Clarity Logo" />
+               <img src="/src/assets/images/career_clarity_logo_1779860461640.png" className="w-full h-full object-cover mix-blend-multiply" alt="Career Clarity Logo" />
             </div>
             <span className="font-display font-bold text-lg md:text-xl tracking-wide hidden sm:block">Career Clarity</span>
           </Link>
@@ -62,11 +63,12 @@ export default function Header() {
             <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
             <Link to="/about" className="hover:text-white transition-colors">About Us</Link>
             <a href="#feedback" className="hover:text-white transition-colors">Feedback</a>
+            <a href="#services" className="hover:text-white transition-colors">Services</a>
           </nav>
         )}
         
         {/* Right Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           
           {/* THEME TOGGLE BUTTON */}
           <button 
@@ -74,7 +76,7 @@ export default function Header() {
             className="p-2 text-white/70 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
             title="Toggle Light/Dark Mode"
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
           {!isPricingPage && (
@@ -104,7 +106,7 @@ export default function Header() {
               </button>
               
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-[#111] rounded-xl border border-white/10 py-2 z-50 shadow-xl">
+                <div className="absolute right-0 mt-3 w-48 bg-[#111] rounded-xl border border-white/10 py-2 z-50 shadow-xl exclude-invert">
                    <div className="px-4 py-2 border-b border-white/10 mb-2">
                      <p className="text-sm font-medium text-white truncate">{user.name}</p>
                    </div>
@@ -122,7 +124,8 @@ export default function Header() {
             </div>
           ) : (
             <button 
-              onClick={() => setLoginModalOpen(true)}
+              // FIX: Now securely routes to the /login page
+              onClick={() => navigate('/login')}
               className={cn("flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full font-semibold text-xs md:text-sm transition-colors",
                 "bg-white text-black hover:bg-white/90"
               )}

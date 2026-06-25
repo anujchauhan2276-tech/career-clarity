@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // NEW
 import { useAuth } from "../contexts/AuthContext";
 import { Star, ChevronLeft, ChevronRight, Send, Trash2 } from "lucide-react";
 
@@ -12,19 +13,19 @@ export interface Feedback {
 }
 
 export default function FeedbackSection() {
-  const { user, setLoginModalOpen, getToken } = useAuth();
+  const navigate = useNavigate(); // NEW
+  // FIX: Removed setLoginModalOpen
+  const { user, getToken } = useAuth();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [text, setText] = useState("");
   const [rating, setRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // FETCH REVIEWS FROM DJANGO
   useEffect(() => {
     let mounted = true;
     const fetchFeedbacks = async () => {
       try {
-        // FIX: Using .env variable here
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/`);
         const data = await res.json();
         if (mounted) setFeedbacks(data.feedbacks || []);
@@ -36,7 +37,6 @@ export default function FeedbackSection() {
     return () => { mounted = false; };
   }, []);
 
-  // SUBMIT REVIEW TO DJANGO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !user || rating === 0) return;
@@ -50,8 +50,6 @@ export default function FeedbackSection() {
 
     try {
       const token = await getToken();
-
-      // FIX: Using .env variable here
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/`, {
         method: "POST",
         headers: { 
@@ -79,13 +77,10 @@ export default function FeedbackSection() {
     }
   };
 
-  // DELETE REVIEW IN DJANGO
   const handleDelete = async (id: string | undefined) => {
     if (!id) return;
     try {
       const token = await getToken();
-
-      // FIX: Using .env variable here
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/${id}/`, {
         method: "DELETE",
         headers: {
@@ -144,7 +139,8 @@ export default function FeedbackSection() {
                 <h4 className="text-xl font-medium mb-3 text-white">Join the conversation</h4>
                 <p className="text-gray-400 mb-8 max-w-xs leading-relaxed">Log in to leave a review and share your experience with the community.</p>
                 <button 
-                  onClick={() => setLoginModalOpen(true)}
+                  // FIX: Safely route to login page
+                  onClick={() => navigate('/login')}
                   className="bg-white text-black px-8 py-3 rounded-xl font-semibold shadow-lg hover:bg-gray-100 transition focus:ring-2 focus:ring-white/50"
                 >
                   Log In to Review
@@ -237,7 +233,6 @@ export default function FeedbackSection() {
                     "{feedbacks[currentIndex]?.text}"
                   </p>
                   <div className="flex items-center gap-4">
-                    {/* The fallback initial inside the bubble if no image is present */}
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-sm">
                       {feedbacks[currentIndex]?.name?.charAt(0).toUpperCase() || "A"}
                     </div>

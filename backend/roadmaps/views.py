@@ -7,8 +7,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from firebase_admin import auth as firebase_auth
-from google import genai
-from google.genai import types
+from groq import Groq
 
 from .models import Roadmap, RoadmapStep, Feedback
 from .serializers import RoadmapSerializer, FeedbackSerializer
@@ -42,16 +41,18 @@ def get_target_language(country_id, language_mode):
     }
     return lang_map.get(country_id.lower(), 'English')
 
-# --- ELITE AI ROADMAP GENERATOR ---
+# --- ELITE GROQ AI ROADMAP GENERATOR ---
 def generate_and_save_roadmap(course_id, country_id, language_mode):
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    # Initialize the Groq client
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     target_lang = get_target_language(country_id, language_mode)
     
     system_instruction = """
     You are an elite, world-class career strategist and technical architect. 
     Your job is to provide absolute, highest-tier, industry-accurate career roadmaps.
-    Do NOT provide generic, fluffy, or 'shitty' advice. Use highly specific, advanced industry terminology. 
+    Do NOT provide generic, fluffy advice. Use highly specific, advanced industry terminology. 
     Point out brutal realities, exact tools used in the modern enterprise, and rigorous milestones.
+    You MUST output your response in valid JSON format.
     """
 
     prompt = f"""
@@ -59,88 +60,71 @@ def generate_and_save_roadmap(course_id, country_id, language_mode):
     Context: Tailor this strictly to the academic system, corporate culture, and job market of '{country_id}'.
     
     CRITICAL INSTRUCTION FOR LANGUAGE:
-    You MUST perfectly translate EVERY SINGLE STRING in your response into {target_lang}.
+    You MUST perfectly translate EVERY SINGLE STRING in your JSON response into {target_lang}.
     
-    Generate exactly 10 highly detailed steps. Make sure the difficulty strictly progresses from Beginner -> Intermediate -> Advanced -> Expert -> Visionary.
-    Never output partial or truncated responses. Finish the entire 10-step roadmap.
+    You MUST output exactly and ONLY a JSON object matching this schema:
+    {{
+      "overview": "A detailed 2-3 sentence overview of this exact path in this country.",
+      "future_outlook": "A detailed paragraph on the 10-year future of this career in this specific country.",
+      "opportunity": "A specific market gap or arbitrage opportunity.",
+      "pro_tip": "One highly actionable, advanced insider tip.",
+      "pros": ["Pro 1", "Pro 2", "Pro 3"],
+      "cons": ["Con 1", "Con 2", "Con 3"],
+      "how_to": ["Step 1 to start", "Step 2", "Step 3"],
+      "links": [
+        {{"name": "Name of top certification/resource", "url": "https://example.com"}}
+      ],
+      "steps": [
+        {{
+          "step_number": 1,
+          "title": "Phase 1: Deep Foundations",
+          "timeframe": "Month 1-3",
+          "difficulty": "Beginner", 
+          "description": "Detailed description of this phase.",
+          "tools": ["Specific Tool 1", "Specific Tool 2"],
+          "milestones": ["Hard Milestone 1", "Hard Milestone 2"],
+          "anti_patterns": ["Rookie Mistake 1", "Rookie Mistake 2"]
+        }}
+      ]
+    }}
+    
+    Generate exactly 10 highly detailed steps in the "steps" array. 
+    Make sure the difficulty strictly progresses from Beginner -> Intermediate -> Advanced -> Expert -> Visionary.
     """
 
-    # STRICT SCHEMA ENFORCEMENT: 
-    # This mathematically forces Gemini to give us perfect data. It cannot skip fields.
-    roadmap_schema = {
-        "type": "OBJECT",
-        "properties": {
-            "overview": {"type": "STRING"},
-            "future_outlook": {"type": "STRING"},
-            "opportunity": {"type": "STRING"},
-            "pro_tip": {"type": "STRING"},
-            "pros": {"type": "ARRAY", "items": {"type": "STRING"}},
-            "cons": {"type": "ARRAY", "items": {"type": "STRING"}},
-            "how_to": {"type": "ARRAY", "items": {"type": "STRING"}},
-            "links": {
-                "type": "ARRAY", 
-                "items": {
-                    "type": "OBJECT", 
-                    "properties": {
-                        "name": {"type": "STRING"}, 
-                        "url": {"type": "STRING"}
-                    }
-                }
-            },
-            "steps": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "step_number": {"type": "INTEGER"},
-                        "title": {"type": "STRING"},
-                        "timeframe": {"type": "STRING"},
-                        "difficulty": {"type": "STRING"},
-                        "description": {"type": "STRING"},
-                        "tools": {"type": "ARRAY", "items": {"type": "STRING"}},
-                        "milestones": {"type": "ARRAY", "items": {"type": "STRING"}},
-                        "anti_patterns": {"type": "ARRAY", "items": {"type": "STRING"}}
-                    }
-                }
-            }
-        },
-        "required": ["overview", "future_outlook", "opportunity", "pro_tip", "pros", "cons", "how_to", "links", "steps"]
-    }
-
-    # RETRY LOOP: Bypasses Google's 503 "Overloaded" Spikes
     max_retries = 3
-    response = None
+    response_content = None
     last_exception = None
 
+    # Call Groq Llama 3.3 70B
     for attempt in range(max_retries):
         try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                    response_schema=roadmap_schema, # FORCES THE SCHEMA!
-                    temperature=0.2, # Very low temperature for maximum consistency and lack of hallucination
-                    max_output_tokens=8192, # Gives the AI a massive buffer so it NEVER cuts off halfway
-                )
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": prompt}
+                ],
+                model="llama-3.3-70b-versatile", # The best all-around open-source model currently available
+                temperature=0.2, # Keeps the AI factual and structured
+                response_format={"type": "json_object"}, # Forces Groq to return perfect JSON
             )
+            response_content = chat_completion.choices[0].message.content
             
-            # Validate that the AI actually gave us the 10 steps before accepting it
-            temp_data = json.loads(response.text)
+            # Basic validation
+            temp_data = json.loads(response_content)
             if len(temp_data.get("steps", [])) < 5:
-                raise ValueError("AI returned a truncated or shitty roadmap. Retrying for a better one.")
+                raise ValueError("AI returned a truncated roadmap. Retrying.")
                 
-            break # Success! Break out of the loop
+            break
         except Exception as e:
             last_exception = e
-            print(f"Gemini API attempt {attempt + 1} failed: {e}")
+            print(f"Groq API attempt {attempt + 1} failed: {e}")
             time.sleep(2)
 
-    if not response:
+    if not response_content:
         raise last_exception
 
-    ai_data = json.loads(response.text)
+    ai_data = json.loads(response_content)
     
     # --- SAVE IT FOREVER ---
     try:
@@ -190,21 +174,14 @@ def get_roadmap(request):
         return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # STEP 1: CHECK THE DATABASE FIRST!
-        # If the roadmap exists in Postgres, it grabs it immediately (0.1 seconds).
-        # It DOES NOT call Gemini again. It relies entirely on your saved DB version.
         roadmap = Roadmap.objects.get(course_id__iexact=course_id, country_id__iexact=country_id, language__iexact=language)
         
     except Roadmap.DoesNotExist:
-        # STEP 2: ONLY CALL GEMINI IF IT IS BRAND NEW
         try:
             roadmap = generate_and_save_roadmap(course_id, country_id, language)
         except Exception as e:
             traceback.print_exc()
-            error_msg = str(e)
-            if "503" in error_msg or "UNAVAILABLE" in error_msg:
-                return Response({"error": "Google's AI servers are currently overloaded. Please try clicking the roadmap again in 10 seconds."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            return Response({"error": "AI generation failed. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "AI generation failed or Groq API key is missing. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     if roadmap.is_premium:
         user_data = verify_firebase_token(request)

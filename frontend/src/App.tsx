@@ -14,9 +14,10 @@ import CookiePolicy from "./pages/CookiePolicy";
 import Process from "./pages/Process";
 import LearnMore from "./pages/LearnMore";
 import Header from "./components/Header";
-import LoginModal from "./components/LoginModal";
 import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
+import LoginPage from "./pages/LoginPage"; // FIX: Updated Import Name
+import Register from "./pages/Register";
 
 export default function App() {
   return (
@@ -28,6 +29,8 @@ export default function App() {
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/login" element={<LoginPage />} /> {/* FIX: Updated Component */}
+              <Route path="/register" element={<Register />} />
               <Route path="/learn-more" element={<LearnMore />} />
               <Route path="/process" element={<Process />} />
               <Route path="/setup" element={<Setup />} />
@@ -41,7 +44,6 @@ export default function App() {
             </Routes>
           </main>
           <Footer />
-          <LoginModal />
           <CookieBanner />
         </div>
       </ThemeProvider>

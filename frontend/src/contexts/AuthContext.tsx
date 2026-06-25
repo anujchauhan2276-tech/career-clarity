@@ -1,6 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { auth, googleProvider } from "../lib/firebase";
-import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from "firebase/auth";
+import { auth, googleProvider, githubProvider } from "../lib/firebase";
+import { 
+  signInWithPopup, 
+  signOut as firebaseSignOut, 
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile
+} from "firebase/auth";
 
 interface User {
   uid: string;
@@ -11,12 +18,13 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
-  getToken: () => Promise<string | null>; // NEW
-  isLoginModalOpen: boolean;
-  setLoginModalOpen: (open: boolean) => void;
   authLoading: boolean;
+  getToken: () => Promise<string | null>;
+  loginWithGoogle: () => Promise<void>;
+  loginWithGithub: () => Promise<void>;
+  loginWithEmail: (e: string, p: string) => Promise<void>;
+  registerWithEmail: (n: string, e: string, p: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +32,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -43,46 +50,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // NEW: Function to get the secure token
   const getToken = async () => {
-    if (auth.currentUser) {
-      return await auth.currentUser.getIdToken();
-    }
+    if (auth.currentUser) return await auth.currentUser.getIdToken();
     return null;
   };
 
-  const login = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      setLoginModalOpen(false);
-    } catch (error) {
-      console.error("Google Sign-In Error", error);
-      alert("Failed to sign in with Google.");
-    }
+  const loginWithGoogle = async () => {
+    await signInWithPopup(auth, googleProvider);
+  };
+
+  const loginWithGithub = async () => {
+    await signInWithPopup(auth, githubProvider);
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const registerWithEmail = async (name: string, email: string, pass: string) => {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(res.user, { displayName: name });
+    // Manually update local state immediately so UI reflects the name
+    setUser({ uid: res.user.uid, name, email, photoUrl: "" });
   };
 
   const logout = async () => {
-    try {
-      await firebaseSignOut(auth);
-      setUser(null);
-    } catch (error) {
-      console.error("Sign Out Error", error);
-    }
+    await firebaseSignOut(auth);
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, login, logout, getToken, isLoginModalOpen, setLoginModalOpen, authLoading }}
-    >
+    <AuthContext.Provider value={{ user, authLoading, getToken, loginWithGoogle, loginWithGithub, loginWithEmail, registerWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
   return context;
-}
+};
