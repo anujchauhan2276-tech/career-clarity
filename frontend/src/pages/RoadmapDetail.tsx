@@ -378,9 +378,6 @@ export default function RoadmapDetail() {
                     <Activity className="w-3 h-3 text-white/20" />
                     <h4 className="text-[9px] font-black uppercase tracking-widest text-white/20">System Estimate</h4>
                   </div>
-                  <p className="text-[11px] text-white/40 leading-relaxed">
-                    Approx. <strong>{data.roadmapSteps.length * 8} weeks</strong> of full-immersion study required for baseline competency.
-                  </p>
                 </div>
               </motion.div>
             </div>
