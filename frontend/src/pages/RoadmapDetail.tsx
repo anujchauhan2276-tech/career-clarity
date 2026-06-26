@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   BookOpen,
@@ -19,15 +20,28 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  MousePointer2
+  MousePointer2,
+  BarChart3,
+  Compass,
+  Trophy,
+  Activity,
+  Flame
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
 
-/**
- * Interface definition for the full Roadmap object.
- * This version is built to handle heavy data without visual clutter.
- */
+// --- TYPES & INTERFACES ---
+
+interface RoadmapStep {
+  step: number;
+  title: string;
+  timeframe: string;
+  tools: string[];
+  desc: string;
+  milestones: string[];
+  antiPatterns?: string[];
+  difficulty: string;
+}
+
 interface RoadmapData {
   title: string;
   description: string;
@@ -38,17 +52,53 @@ interface RoadmapData {
   howTo: string[];
   proTip: string;
   links: { name: string; url: string }[];
-  roadmapSteps: { 
-    step: number; 
-    title: string; 
-    timeframe: string; 
-    tools: string[]; 
-    desc: string;
-    milestones: string[];
-    antiPatterns?: string[];
-    difficulty: string;
-  }[];
+  roadmapSteps: RoadmapStep[];
 }
+
+// --- UTILITY COMPONENTS ---
+
+/**
+ * A beautiful, animated progress bar fixed to the top of the viewport.
+ */
+const GlobalProgressBar = ({ progress }: { progress: number }) => (
+  <div className="fixed top-0 left-0 w-full h-1.5 z-[100] bg-white/5 overflow-hidden">
+    <motion.div
+      className="h-full bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]"
+      initial={{ width: 0 }}
+      animate={{ width: `${progress}%` }}
+      transition={{ duration: 1, ease: "circOut" }}
+    />
+  </div>
+);
+
+/**
+ * A stylized section label for consistent branding.
+ */
+const SectionLabel = ({ icon: Icon, label, color = "text-purple-500" }: { icon: any, label: string, color?: string }) => (
+  <div className="flex items-center gap-3 mb-10">
+    <div className={`p-2 rounded-lg bg-white/5 border border-white/10 ${color}`}>
+      <Icon size={16} />
+    </div>
+    <h2 className="text-[10px] font-black tracking-[0.4em] uppercase text-white/30">
+      {label}
+    </h2>
+  </div>
+);
+
+/**
+ * Quick info cards for the top of the page.
+ */
+const StatCard = ({ icon: Icon, label, value, color }: { icon: any, label: string, value: string, color: string }) => (
+  <div className="flex flex-col p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+    <div className={`mb-3 ${color}`}>
+      <Icon size={20} />
+    </div>
+    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">{label}</span>
+    <span className="text-sm font-medium text-white/80">{value}</span>
+  </div>
+);
+
+// --- MAIN PAGE COMPONENT ---
 
 export default function RoadmapDetail() {
   const { countryId, courseId } = useParams();
@@ -59,70 +109,58 @@ export default function RoadmapDetail() {
   const { user, getToken } = useAuth();
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false); 
+  const [error, setError] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const decodedCourse = courseId ? decodeURIComponent(courseId) : "";
   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
-  /**
-   * DATA PARSING UTILITY
-   * Transforms raw text from Django Admin into clean UI components.
-   */
+  // --- DATA PARSING ---
+
   const parseTextToList = (item: any): string[] => {
     if (Array.isArray(item)) return item;
     if (typeof item === "string") {
       return item
-        .split('\n')
-        .map(line => line.trim())
-        .map(line => line.replace(/^[•\-\*\d\.]+\s*/, ''))
-        .filter(line => line.length > 0);
+        .split("\n")
+        .map((line) => line.trim())
+        .map((line) => line.replace(/^[•\-\*\d\.]+\s*/, ""))
+        .filter((line) => line.length > 0);
     }
     return [];
   };
 
-  /**
-   * SYNC USER PROGRESS
-   */
+  // --- PERSISTENCE ---
+
   useEffect(() => {
     if (user && decodedCourse) {
-      const fetchProgress = async () => {
+      const saved = localStorage.getItem(`user_progress_${user.uid}_${decodedCourse}`);
+      if (saved) {
         try {
-          const key = `user_progress_${user.uid}_${decodedCourse}`;
-          const val = localStorage.getItem(key);
-          if (val) {
-            const data = JSON.parse(val);
-            setCompletedSteps(data.completedSteps || []);
-          }
-        } catch (e: any) {
-          console.warn("Local storage sync error.");
+          const parsed = JSON.parse(saved);
+          setCompletedSteps(parsed.completedSteps || []);
+        } catch (e) {
+          console.error("Local Storage parse error.");
         }
-      };
-      fetchProgress();
+      }
     }
   }, [user, decodedCourse]);
 
   const toggleStep = async (stepNum: number) => {
-    if (!user) return; 
-    const newCompleted = completedSteps.includes(stepNum) 
-      ? completedSteps.filter((s) => s !== stepNum) 
+    if (!user) return;
+    const nextSteps = completedSteps.includes(stepNum)
+      ? completedSteps.filter((s) => s !== stepNum)
       : [...completedSteps, stepNum];
-    
-    setCompletedSteps(newCompleted);
 
-    try {
-      const key = `user_progress_${user.uid}_${decodedCourse}`;
-      localStorage.setItem(key, JSON.stringify({ 
-        completedSteps: newCompleted, 
-        lastUpdated: new Date().toISOString() 
-      }));
-    } catch (e: any) {}
+    setCompletedSteps(nextSteps);
+    localStorage.setItem(
+      `user_progress_${user.uid}_${decodedCourse}`,
+      JSON.stringify({ completedSteps: nextSteps, lastUpdated: new Date().toISOString() })
+    );
   };
 
-  /**
-   * THEME & LANGUAGE HANDLING
-   */
+  // --- LANGUAGE SETTINGS ---
+
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId || "");
   const [language, setLanguage] = useState<"Native" | "English">(urlLang || "English");
 
@@ -134,9 +172,8 @@ export default function RoadmapDetail() {
     }
   }, [language, navigate, searchParams, urlLang]);
 
-  /**
-   * CORE FETCH LOGIC
-   */
+  // --- API COMMUNICATION ---
+
   useEffect(() => {
     if (!decodedCourse) return;
 
@@ -146,51 +183,49 @@ export default function RoadmapDetail() {
 
       try {
         const token = await getToken();
-
-        const res = await fetch(`${apiBase}/api/roadmap/get/`, {
+        const response = await fetch(`${apiBase}/api/roadmap/get/`, {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : ""
+            "Authorization": token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             courseId: decodedCourse,
             countryId: countryId,
-            language: language === "Native" ? "Native" : "English"
+            language: language === "Native" ? "Native" : "English",
           }),
         });
 
-        if (!res.ok) throw new Error("Database miss.");
-        const dataJson = await res.json();
+        if (!response.ok) throw new Error("API Failure");
+        const json = await response.json();
 
-        if (res.status === 403 && dataJson.is_locked) {
-            navigate("/pricing", { replace: true });
-            return;
+        if (response.status === 403 && json.is_locked) {
+          navigate("/pricing", { replace: true });
+          return;
         }
 
         setData({
-          title: dataJson.title || decodedCourse,
-          description: dataJson.overview || "",
-          future: dataJson.future_outlook || "",
-          pros: parseTextToList(dataJson.pros),
-          cons: parseTextToList(dataJson.cons),
-          opportunity: dataJson.opportunity || "",
-          howTo: parseTextToList(dataJson.how_to),
-          proTip: dataJson.pro_tip || "",
-          links: Array.isArray(dataJson.links) ? dataJson.links : [],
-          roadmapSteps: (Array.isArray(dataJson.steps) ? dataJson.steps : []).map((step: any) => ({
-            step: step.step_number || 1,
-            title: step.title || "Untitled Phase",
-            timeframe: step.timeframe || "",
-            difficulty: step.difficulty || "Standard",
-            tools: parseTextToList(step.tools),
-            desc: step.description || "",
-            milestones: parseTextToList(step.milestones),
-            antiPatterns: parseTextToList(step.anti_patterns),
+          title: json.title || decodedCourse,
+          description: json.overview || "",
+          future: json.future_outlook || "",
+          pros: parseTextToList(json.pros),
+          cons: parseTextToList(json.cons),
+          opportunity: json.opportunity || "",
+          howTo: parseTextToList(json.how_to),
+          proTip: json.pro_tip || "",
+          links: Array.isArray(json.links) ? json.links : [],
+          roadmapSteps: (Array.isArray(json.steps) ? json.steps : []).map((s: any) => ({
+            step: s.step_number || 1,
+            title: s.title || "Untitled Stage",
+            timeframe: s.timeframe || "TBD",
+            difficulty: s.difficulty || "Standard",
+            tools: parseTextToList(s.tools),
+            desc: s.description || "",
+            milestones: parseTextToList(s.milestones),
+            antiPatterns: parseTextToList(s.anti_patterns),
           })),
         });
-
-      } catch (err: any) {
+      } catch (err) {
         setError(true);
       } finally {
         setLoading(false);
@@ -201,123 +236,162 @@ export default function RoadmapDetail() {
     fetchRoadmap();
   }, [decodedCourse, user, language, countryId, navigate, getToken, apiBase]);
 
+  const progressPercent = useMemo(() => {
+    if (!data?.roadmapSteps.length) return 0;
+    return Math.round((completedSteps.length / data.roadmapSteps.length) * 100);
+  }, [completedSteps, data]);
+
   if (!countryId || !courseId) return <Navigate to="/setup" replace />;
 
-  const progressPercent = data?.roadmapSteps.length 
-    ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100) 
-    : 0;
-
   return (
-    <div className="min-h-screen bg-[#020202] text-white pt-24 pb-32">
-      
-      {/* 1. ELITE TOP PROGRESS TRACKER */}
-      {data && !loading && !error && (
-        <div className="fixed top-0 left-0 w-full h-1.5 z-[100] bg-white/5">
-           <div 
-            className="h-full bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 transition-all duration-1000 ease-in-out shadow-[0_0_20px_rgba(168,85,247,0.4)]" 
-            style={{ width: `${progressPercent}%` }}
-           />
-        </div>
-      )}
+    <div className="min-h-screen bg-[#020202] text-white pt-24 pb-40 selection:bg-indigo-500/30 overflow-x-hidden">
+      <GlobalProgressBar progress={progressPercent} />
 
-      <div className="container mx-auto px-4 md:px-8 max-w-6xl" ref={containerRef}>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl" ref={containerRef}>
         
-        {/* Navigation */}
-        <div className="flex items-center justify-between mb-16">
-          <button 
-            onClick={() => navigate(`/${countryId}`)} 
-            className="flex items-center gap-2 text-white/30 hover:text-white transition-all group font-bold text-xs tracking-widest uppercase"
+        {/* TOP NAVIGATION BAR */}
+        <nav className="flex items-center justify-between mb-16 sm:mb-24">
+          <motion.button
+            whileHover={{ x: -5 }}
+            onClick={() => navigate(`/${countryId}`)}
+            className="flex items-center gap-3 text-white/40 hover:text-white transition-colors font-bold text-[10px] tracking-[0.2em] uppercase"
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+            <ArrowLeft size={16} /> 
             Back to Dashboard
-          </button>
-          
+          </motion.button>
+
           {supportsNative && (
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-               <button onClick={() => setLanguage("English")} className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${language === 'English' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}>EN</button>
-               <button onClick={() => setLanguage("Native")} className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${language === 'Native' ? 'bg-purple-600 text-white' : 'text-white/40 hover:text-white'}`}>NATIVE</button>
+            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+              <button 
+                onClick={() => setLanguage("English")} 
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-widest transition-all ${language === 'English' ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-white/40 hover:text-white'}`}
+              >
+                EN
+              </button>
+              <button 
+                onClick={() => setLanguage("Native")} 
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-widest transition-all ${language === 'Native' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-white/40 hover:text-white'}`}
+              >
+                NATIVE
+              </button>
             </div>
           )}
-        </div>
+        </nav>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-60">
-            <Loader2 className="w-12 h-12 animate-spin text-indigo-500 mb-6" />
-            <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Synchronizing Data</p>
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="mb-8"
+            >
+              <Loader2 size={48} className="text-indigo-500" />
+            </motion.div>
+            <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.6em] animate-pulse">Assembling Roadmap</p>
           </div>
         ) : error ? (
-           <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-             <div className="w-24 h-24 bg-white/[0.02] border border-white/10 rounded-[2rem] flex items-center justify-center mb-8 rotate-3 shadow-2xl">
-                <Map className="w-12 h-12 text-white/5" />
-             </div>
-             <h2 className="text-4xl font-display font-bold mb-4 text-white/90 tracking-tight">Curriculum Pending</h2>
-             <p className="text-white/30 max-w-sm mx-auto text-lg font-light leading-relaxed">
-                This specific pathway for <strong>{decodedCourse}</strong> is currently being verified by our industry leads.
-             </p>
-           </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-40 text-center"
+          >
+            <div className="w-24 h-24 bg-white/[0.02] border border-white/5 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-3xl">
+              <Compass className="w-12 h-12 text-white/5" />
+            </div>
+            <h2 className="text-4xl md:text-6xl font-display font-bold mb-6 tracking-tight text-white/90">Path Pending</h2>
+            <p className="text-white/30 max-w-sm mx-auto text-lg font-light leading-relaxed">
+              We are currently hand-curating the definitive career strategy for <strong>{decodedCourse}</strong>.
+            </p>
+          </motion.div>
         ) : data ? (
-          <>
-            {/* 2. HERO AREA */}
-            <header className="mb-24 md:mb-32 max-w-4xl">
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-[0.2em] uppercase text-indigo-400">
-                    Regional Blueprint: {countryId}
-                 </div>
-                 {progressPercent === 100 && (
-                   <div className="px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-[10px] font-black tracking-[0.2em] uppercase text-green-400 flex items-center gap-2">
-                     <Award className="w-3 h-3" /> Mastered
-                   </div>
-                 )}
-              </div>
-              <h1 className="text-5xl md:text-8xl font-display font-bold mb-10 tracking-tighter leading-[0.9] text-white">
+          <main className="animate-in fade-in duration-1000">
+            
+            {/* HERO SECTION */}
+            <header className="relative mb-32">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-4 mb-10"
+              >
+                <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-[0.25em] uppercase text-indigo-400">
+                  Global Blueprint: {countryId}
+                </div>
+                {progressPercent === 100 && (
+                  <motion.div 
+                    initial={{ scale: 0 }} 
+                    animate={{ scale: 1 }}
+                    className="px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-[10px] font-black tracking-[0.25em] uppercase text-green-400 flex items-center gap-2"
+                  >
+                    <Trophy size={12} /> Mastered
+                  </motion.div>
+                )}
+              </motion.div>
+
+              <motion.h1 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-display font-bold mb-10 tracking-tighter leading-[0.85] text-white"
+              >
                 {data.title}
-              </h1>
-              <p className="text-xl md:text-3xl text-white/40 leading-relaxed font-light max-w-3xl">
+              </motion.h1>
+
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg md:text-2xl lg:text-3xl text-white/40 leading-relaxed font-light max-w-4xl mb-16"
+              >
                 {data.description}
-              </p>
+              </motion.p>
+
+              {/* QUICK STATS GRID */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <StatCard icon={Activity} label="Complexity" value="High Impact" color="text-orange-500" />
+                 <StatCard icon={Clock} label="Duration" value={`${data.roadmapSteps.length * 4} Months Avg.`} color="text-blue-500" />
+                 <StatCard icon={Flame} label="Market Demand" value="Rising Fast" color="text-pink-500" />
+                 <StatCard icon={Check} label="Milestones" value={`${data.roadmapSteps.length * 3} To Complete`} color="text-green-500" />
+              </div>
             </header>
 
-            {/* 3. CORE TIMELINE */}
-            <section className="mb-40">
-              <div className="flex items-center gap-6 mb-20">
-                <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                   <h2 className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 mb-1">Chronological Order</h2>
-                   <p className="text-xl font-display font-bold text-white/80">Step-by-Step Execution Plan</p>
-                </div>
-              </div>
+            {/* CORE TIMELINE */}
+            <section className="mb-48">
+              <SectionLabel icon={Target} label="Chronological Execution" />
 
-              <div className="relative ml-4 md:ml-12 border-l border-white/5 space-y-24">
+              <div className="relative ml-4 md:ml-10 border-l-2 border-white/5 space-y-32">
                 {data.roadmapSteps.map((step, i) => {
                   const isCompleted = completedSteps.includes(step.step);
                   return (
-                    <div key={i} className="relative pl-12 md:pl-20 group">
-                      
-                      {/* Interactive Button */}
+                    <motion.div 
+                      key={i} 
+                      viewport={{ once: true, margin: "-100px" }}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      className="relative pl-12 md:pl-24"
+                    >
+                      {/* STEP BUTTON */}
                       <button 
                         onClick={() => toggleStep(step.step)}
-                        className={`absolute -left-[21px] md:-left-[25px] top-0 w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center transition-all duration-700 z-20 overflow-hidden ${
+                        className={`absolute -left-[23px] md:-left-[27px] top-0 w-12 h-12 rounded-3xl border border-white/10 flex items-center justify-center transition-all duration-700 z-30 ${
                           isCompleted 
-                            ? "bg-indigo-600 border-indigo-400 shadow-[0_0_40px_rgba(79,70,229,0.5)] rotate-[360deg]" 
-                            : "bg-[#020202] hover:border-indigo-500 hover:scale-110"
+                            ? "bg-indigo-600 border-indigo-400 shadow-[0_0_40px_rgba(79,70,229,0.6)] rotate-[360deg]" 
+                            : "bg-[#020202] hover:border-indigo-500 hover:scale-110 shadow-2xl"
                         }`}
                       >
-                        {isCompleted ? <Check className="w-5 h-5 text-white" strokeWidth={4} /> : <div className="w-2 h-2 bg-white/10 rounded-full group-hover:bg-indigo-500 transition-colors"></div>}
+                        {isCompleted ? <Check size={20} strokeWidth={4} /> : <span className="text-[10px] font-black text-white/20">{step.step}</span>}
                       </button>
 
-                      {/* Content Layout */}
-                      <div className={`transition-all duration-1000 ease-in-out ${isCompleted ? "opacity-20 grayscale scale-[0.97] blur-[2px]" : "opacity-100"}`}>
-                        <div className="flex flex-wrap items-center gap-4 mb-4">
-                          <span className="text-[11px] font-black tracking-widest uppercase text-indigo-500">Stage 0{step.step}</span>
-                          <div className="flex items-center gap-2 text-white/20 font-mono text-[10px] uppercase tracking-tighter">
-                             <Clock className="w-3 h-3" /> {step.timeframe}
+                      {/* STEP CONTENT */}
+                      <div className={`transition-all duration-1000 ${isCompleted ? "opacity-20 grayscale scale-[0.98] blur-[2px]" : "opacity-100"}`}>
+                        <div className="flex flex-wrap items-center gap-4 mb-6">
+                          <span className="text-[10px] font-black tracking-[0.3em] uppercase text-indigo-500 bg-indigo-500/5 px-3 py-1 rounded-full border border-indigo-500/10">Stage 0{step.step}</span>
+                          <div className="flex items-center gap-2 text-white/20 font-mono text-[10px] uppercase tracking-widest">
+                             <Clock size={12} /> {step.timeframe}
                           </div>
-                          <div className="px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-[9px] font-black uppercase text-white/30">{step.difficulty}</div>
+                          <div className="px-3 py-1 rounded-full border border-white/5 bg-white/5 text-[9px] font-black uppercase tracking-widest text-white/30">{step.difficulty}</div>
                         </div>
                         
-                        <h3 className="text-3xl md:text-5xl font-display font-bold mb-8 tracking-tight leading-tight">
+                        <h3 className="text-3xl md:text-6xl font-display font-bold mb-8 tracking-tight leading-[1.1] text-white/90">
                           {step.title}
                         </h3>
                         
@@ -325,43 +399,43 @@ export default function RoadmapDetail() {
                           {step.desc}
                         </p>
 
-                        {/* Tools / Assets */}
+                        {/* TOOLS PILLS */}
                         {step.tools.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-12">
                             {step.tools.map((t, idx) => (
-                              <span key={idx} className="px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg text-[10px] font-bold text-white/30 uppercase tracking-widest hover:text-white/60 transition-all">
+                              <span key={idx} className="px-4 py-2 bg-white/[0.03] border border-white/5 rounded-2xl text-[10px] font-black text-white/30 uppercase tracking-[0.1em] hover:text-white/60 hover:bg-white/10 transition-all cursor-default">
                                 {t}
                               </span>
                             ))}
                           </div>
                         )}
 
-                        {/* Detail Grids */}
+                        {/* SUB-GRIDS FOR MILESTONES */}
                         <div className="grid md:grid-cols-2 gap-6">
                           {step.milestones.length > 0 && (
-                            <div className="p-8 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[2rem]">
-                              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/40 mb-6 flex items-center gap-3">
-                                <Target className="w-4 h-4" /> Benchmarks
+                            <div className="p-8 bg-indigo-500/[0.03] border border-indigo-500/10 rounded-[2.5rem] backdrop-blur-xl">
+                              <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400/40 mb-8 flex items-center gap-3">
+                                <Award size={14} /> Benchmarks
                               </h4>
-                              <ul className="space-y-4">
+                              <ul className="space-y-6">
                                 {step.milestones.map((m, mIdx) => (
-                                  <li key={mIdx} className="text-base text-white/60 flex gap-4 leading-relaxed">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0"></div>
-                                    <span className="flex-1">{m}</span>
+                                  <li key={mIdx} className="text-base text-white/60 flex gap-5 leading-relaxed">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2.5 shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                                    <span className="flex-1 font-light italic">{m}</span>
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <div className="p-8 bg-red-500/[0.01] border border-red-500/10 rounded-[2rem]">
-                               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-red-400/40 mb-6 flex items-center gap-3">
-                                <ShieldAlert className="w-4 h-4" /> Risks & Pitfalls
+                            <div className="p-8 bg-red-500/[0.01] border border-red-500/10 rounded-[2.5rem] backdrop-blur-xl">
+                               <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-red-400/40 mb-8 flex items-center gap-3">
+                                <ShieldAlert size={14} /> Critical Pitfalls
                               </h4>
-                              <ul className="space-y-4">
+                              <ul className="space-y-6">
                                 {step.antiPatterns.map((a, aIdx) => (
-                                  <li key={aIdx} className="text-base text-white/40 flex gap-4 leading-relaxed italic">
-                                    <span className="text-red-900 font-bold">×</span>
+                                  <li key={aIdx} className="text-base text-white/40 flex gap-5 leading-relaxed font-light">
+                                    <span className="text-red-900 font-black text-lg">!</span>
                                     <span className="flex-1">{a}</span>
                                   </li>
                                 ))}
@@ -370,138 +444,172 @@ export default function RoadmapDetail() {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
             </section>
 
-            {/* 4. BALANCED ANALYSIS (PROS & CONS) */}
-            <div className="grid md:grid-cols-2 gap-8 mb-40">
-                <div className="p-12 bg-white/[0.01] border border-white/5 rounded-[3rem] shadow-3xl">
-                  <div className="flex items-center gap-4 mb-10">
-                    <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.1)]">
-                      <CheckCircle2 className="w-7 h-7 text-green-400" />
+            {/* PROS & CONS */}
+            <section className="mb-48">
+              <SectionLabel icon={BarChart3} label="Strategic Analysis" color="text-green-500" />
+              <div className="grid md:grid-cols-2 gap-8">
+                <motion.div 
+                  whileHover={{ y: -10 }}
+                  className="p-12 bg-white/[0.01] border border-white/5 rounded-[4rem] shadow-3xl"
+                >
+                  <div className="flex items-center gap-5 mb-12">
+                    <div className="w-16 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.1)]">
+                      <CheckCircle2 size={28} className="text-green-400" />
                     </div>
                     <div>
-                        <h3 className="text-2xl font-display font-bold text-white/90 leading-none">The Advantages</h3>
-                        <p className="text-xs text-white/20 uppercase tracking-widest mt-2">Why pursue this path?</p>
+                        <h3 className="text-3xl font-display font-bold text-white/90 tracking-tight">Competitive Advantage</h3>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] mt-2 font-black">Success Drivers</p>
                     </div>
                   </div>
-                  <ul className="space-y-8">
+                  <ul className="space-y-10">
                     {data.pros.map((p, i) => (
-                      <li key={i} className="flex items-start gap-5 text-white/40 text-lg md:text-xl leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-green-500 mt-3 shrink-0"></div> 
-                        <span className="flex-1 font-light">{p}</span>
+                      <li key={i} className="flex items-start gap-6 text-white/40 text-xl leading-relaxed font-light group">
+                        <span className="text-green-500 font-black text-2xl group-hover:scale-125 transition-transform">+</span> 
+                        <span className="flex-1 border-b border-white/5 pb-4">{p}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
+                </motion.div>
 
-                <div className="p-12 bg-white/[0.01] border border-white/5 rounded-[3rem] shadow-3xl">
-                  <div className="flex items-center gap-4 mb-10">
-                    <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.1)]">
-                      <XCircle className="w-7 h-7 text-red-400" />
+                <motion.div 
+                   whileHover={{ y: -10 }}
+                   className="p-12 bg-white/[0.01] border border-white/5 rounded-[4rem] shadow-3xl"
+                >
+                  <div className="flex items-center gap-5 mb-12">
+                    <div className="w-16 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.1)]">
+                      <XCircle size={28} className="text-red-400" />
                     </div>
                     <div>
-                        <h3 className="text-2xl font-display font-bold text-white/90 leading-none">The Realities</h3>
-                        <p className="text-xs text-white/20 uppercase tracking-widest mt-2">What are the hurdles?</p>
+                        <h3 className="text-3xl font-display font-bold text-white/90 tracking-tight">The Bottlenecks</h3>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] mt-2 font-black">Entry Barriers</p>
                     </div>
                   </div>
-                  <ul className="space-y-8">
+                  <ul className="space-y-10">
                     {data.cons.map((c, i) => (
-                      <li key={i} className="flex items-start gap-5 text-white/40 text-lg md:text-xl leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-red-500 mt-3 shrink-0"></div> 
-                        <span className="flex-1 font-light">{c}</span>
+                      <li key={i} className="flex items-start gap-6 text-white/40 text-xl leading-relaxed font-light group">
+                        <span className="text-red-900 font-black text-2xl group-hover:scale-125 transition-transform">-</span> 
+                        <span className="flex-1 border-b border-white/5 pb-4">{c}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
-            </div>
+                </motion.div>
+              </div>
+            </section>
 
-            {/* 5. STRATEGIC DEEP DIVE */}
-            <div className="space-y-20 mb-40">
+            {/* DETAILED STRATEGIC BLOCKS */}
+            <div className="space-y-24 mb-48">
               
               {/* Industry Future */}
-              <div className="p-10 md:p-20 bg-gradient-to-br from-[#0A0A0A] to-transparent border border-white/5 rounded-[4rem] relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 opacity-5">
-                   <TrendingUp className="w-80 h-80" />
+              <motion.div 
+                viewport={{ once: true }}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                className="p-12 md:p-24 bg-gradient-to-br from-[#080808] to-transparent border border-white/5 rounded-[5rem] relative overflow-hidden"
+              >
+                <div className="absolute -top-20 -right-20 opacity-[0.02] pointer-events-none">
+                   <TrendingUp size={600} />
                 </div>
-                <h3 className="text-4xl md:text-6xl font-display font-bold mb-10 text-white tracking-tighter">Industry Evolution</h3>
-                <p className="text-xl md:text-3xl text-white/40 leading-relaxed mb-12 font-light max-w-4xl">{data.future}</p>
-                <div className="p-8 bg-indigo-600/10 rounded-[2rem] border border-indigo-500/20 inline-flex items-center gap-6">
-                   <div className="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
-                      <Zap className="w-6 h-6 text-white" />
+                <h3 className="text-4xl md:text-7xl font-display font-bold mb-12 text-white tracking-tighter">Market Trajectory</h3>
+                <p className="text-2xl md:text-4xl text-white/30 leading-snug font-light max-w-4xl mb-16 italic">
+                  "{data.future}"
+                </p>
+                <div className="p-8 bg-indigo-600/10 rounded-[2.5rem] border border-indigo-500/20 inline-flex items-center gap-8 shadow-2xl">
+                   <div className="w-16 h-16 rounded-2xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/40">
+                      <Zap size={32} className="text-white" />
                    </div>
-                   <p className="text-indigo-200 text-lg md:text-2xl font-medium tracking-tight">
-                      <span className="text-white/20 mr-2 uppercase tracking-[0.2em] text-[10px] font-black block mb-1">High-Yield Opportunity</span> 
-                      {data.opportunity}
-                   </p>
+                   <div>
+                      <span className="text-white/20 uppercase tracking-[0.3em] text-[10px] font-black block mb-2 text-left">Strategic Arbitrage</span> 
+                      <p className="text-indigo-200 text-xl md:text-3xl font-medium tracking-tight text-left">
+                        {data.opportunity}
+                      </p>
+                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Start Sequence */}
-              <div className="p-10 md:p-20 bg-white/[0.01] border border-white/5 rounded-[4rem]">
-                <h3 className="text-4xl md:text-6xl font-display font-bold mb-16 tracking-tighter text-white">Starting Sequence</h3>
-                <div className="grid gap-8 mb-20">
+              <section>
+                <SectionLabel icon={Sparkles} label="Immediate Roadmap" color="text-yellow-500" />
+                <div className="grid gap-8 mb-24">
                   {data.howTo.map((h, i) => (
-                    <div key={i} className="flex items-start md:items-center gap-10 p-8 bg-white/[0.02] rounded-[2.5rem] border border-transparent hover:border-white/10 transition-all group">
-                      <span className="text-7xl font-display font-black text-white/[0.02] group-hover:text-indigo-500/20 transition-colors duration-700">0{i+1}</span>
-                      <p className="text-white/60 text-xl md:text-3xl font-light tracking-tight">{h}</p>
-                    </div>
+                    <motion.div 
+                      key={i} 
+                      whileHover={{ x: 10 }}
+                      className="flex items-start md:items-center gap-12 p-10 bg-white/[0.015] rounded-[3rem] border border-transparent hover:border-white/5 transition-all group"
+                    >
+                      <span className="text-8xl font-display font-black text-white/[0.01] group-hover:text-indigo-500/10 transition-colors duration-1000 leading-none">0{i+1}</span>
+                      <p className="text-white/60 text-2xl md:text-4xl font-light tracking-tight flex-1 leading-tight">{h}</p>
+                    </motion.div>
                   ))}
                 </div>
                 
                 {/* Advisor Tip */}
-                <div className="p-10 bg-yellow-500/[0.03] border border-yellow-500/10 rounded-[3rem] flex flex-col md:flex-row gap-10 items-start md:items-center">
-                  <div className="w-20 h-20 rounded-[2rem] bg-yellow-500/10 flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(234,179,8,0.15)] border border-yellow-500/20">
-                    <Lightbulb className="w-10 h-10 text-yellow-500" />
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  className="p-12 md:p-20 bg-yellow-500/[0.02] border border-yellow-500/10 rounded-[4rem] flex flex-col md:flex-row gap-12 items-start md:items-center"
+                >
+                  <div className="w-24 h-24 rounded-[2.5rem] bg-yellow-500/10 flex items-center justify-center shrink-0 shadow-[0_0_60px_rgba(234,179,8,0.15)] border border-yellow-500/20">
+                    <Lightbulb size={40} className="text-yellow-500" />
                   </div>
-                  <div>
-                    <h4 className="text-yellow-500 font-black tracking-[0.4em] uppercase text-[10px] mb-4">Strategic Advisor Intelligence</h4>
-                    <p className="text-yellow-100/70 text-2xl md:text-4xl leading-snug italic font-light whitespace-pre-wrap tracking-tight">"{data.proTip}"</p>
+                  <div className="text-left">
+                    <h4 className="text-yellow-500/40 font-black tracking-[0.5em] uppercase text-[10px] mb-6">Expert Advisory Intelligence</h4>
+                    <p className="text-yellow-100/70 text-3xl md:text-5xl leading-tight font-display font-light italic whitespace-pre-wrap tracking-tighter">
+                      "{data.proTip}"
+                    </p>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </section>
 
-              {/* 6. VERIFIED LINKS */}
+              {/* EXTERNAL INFRASTRUCTURE */}
               {data.links.length > 0 && (
-                <div className="p-12 bg-black border border-white/5 rounded-[4rem]">
-                   <h3 className="text-[10px] font-black tracking-[0.5em] uppercase text-white/20 mb-12 text-center">Reference Infrastructure</h3>
-                   <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-16 bg-[#030303] border border-white/5 rounded-[5rem]">
+                   <h3 className="text-[10px] font-black tracking-[0.6em] uppercase text-white/10 mb-16 text-center">Reference Architecture</h3>
+                   <div className="grid sm:grid-cols-2 gap-6">
                     {data.links.map((l, i) => (
-                      <a 
+                      <motion.a 
                         key={i} 
                         href={l.url} 
                         target="_blank" 
                         rel="noreferrer" 
-                        className="flex items-center justify-between p-8 bg-white/[0.03] border border-white/5 rounded-[2rem] group hover:border-indigo-500/50 hover:bg-indigo-500/[0.02] transition-all"
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center justify-between p-10 bg-white/[0.02] border border-white/5 rounded-[2.5rem] group hover:border-indigo-500/40 hover:bg-indigo-500/[0.02] transition-all"
                       >
-                        <div className="flex items-center gap-6 overflow-hidden">
-                           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all duration-500">
-                             <ExternalLink className="w-5 h-5 text-white/20 group-hover:text-indigo-400" />
+                        <div className="flex items-center gap-8 overflow-hidden">
+                           <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all duration-700">
+                             <ExternalLink size={24} className="text-white/20 group-hover:text-indigo-400" />
                            </div>
-                           <span className="font-bold text-xl text-white/40 group-hover:text-white transition-colors truncate">{l.name}</span>
+                           <div className="flex flex-col text-left">
+                              <span className="text-[9px] font-black text-white/10 uppercase tracking-widest mb-2">Verified Resource</span>
+                              <span className="font-display font-bold text-2xl text-white/40 group-hover:text-white transition-colors truncate">{l.name}</span>
+                           </div>
                         </div>
-                        <ChevronRight className="w-6 h-6 text-white/5 group-hover:text-indigo-400 group-hover:translate-x-2 transition-all" />
-                      </a>
+                        <ChevronRight size={32} className="text-white/5 group-hover:text-indigo-400 group-hover:translate-x-3 transition-all" />
+                      </motion.a>
                     ))}
                    </div>
                 </div>
               )}
             </div>
 
-            {/* Footer Sign-off */}
-            <div className="text-center py-20 border-t border-white/5">
-                <p className="text-white/20 text-[10px] font-black tracking-[0.3em] uppercase mb-4">End of Roadmap</p>
-                <button 
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  <MousePointer2 className="w-6 h-6" />
-                </button>
-            </div>
-          </>
+            {/* END OF DOCUMENT */}
+            <footer className="text-center pb-20">
+                <div className="flex flex-col items-center gap-6 opacity-20 hover:opacity-100 transition-opacity duration-700">
+                    <p className="text-[10px] font-black tracking-[0.5em] uppercase">End of Career Blueprint</p>
+                    <button 
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="p-6 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                    >
+                      <MousePointer2 size={24} />
+                    </button>
+                </div>
+            </footer>
+          </main>
         ) : null}
       </div>
     </div>
