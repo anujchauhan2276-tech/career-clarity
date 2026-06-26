@@ -4,6 +4,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { LogIn, Crown, Menu, X, Sun, Moon } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useState, useRef, useEffect } from "react";
+import logo from "../assets/images/career_clarity_logo_1779860461640.png";
 
 export default function Header() {
   // FIX: Removed setLoginModalOpen
@@ -49,7 +50,11 @@ export default function Header() {
           )}
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
-               <img src="/src/assets/images/career_clarity_logo_1779860461640.png" className="w-full h-full object-cover mix-blend-multiply" alt="Career Clarity Logo" />
+               <img
+                  src={logo}
+                  className="w-full h-full object-cover mix-blend-multiply"
+                  alt="Career Clarity Logo"
+                />
             </div>
             <span className="font-display font-bold text-lg md:text-xl tracking-wide hidden sm:block">Career Clarity</span>
           </Link>
