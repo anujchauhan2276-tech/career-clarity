@@ -4,9 +4,9 @@ Optimized for Production & Local Development.
 """
 import os
 import json
-import firebase_admin
 from pathlib import Path
 from dotenv import load_dotenv
+import firebase_admin
 from firebase_admin import credentials
 import dj_database_url
 
@@ -19,16 +19,13 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # CORE SECURITY SETTINGS
 # ==========================================
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# FIX 1: Was `"False".lower() == "False"` which is always False.
-# Correct logic: compare lowercased value to the string "true".
+# Safely parses "true" or "false" from env
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1,127.0.0.2"
-).split(",")
+# Allows local dev and your specific Render URL
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,127.0.0.2,career-clarity-api.onrender.com").split(",")
 
 # ==========================================
 # APPLICATION DEFINITION
@@ -41,14 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
     'corsheaders',
     'roadmaps',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # Must be first
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -59,11 +55,20 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Allow React to talk to Django safely during local development
+# ==========================================
+# CORS & CSRF (FIXES THE "CORS ERROR")
+# ==========================================
+
+# 1. Get the frontend URL from environment (default to localhost)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173,https://getcareerclarity.vercel.app")
+ALLOWED_URLS = FRONTEND_URL.split(",")
+
+CORS_ALLOWED_ORIGINS = ALLOWED_URLS
+CSRF_TRUSTED_ORIGINS = ALLOWED_URLS
+
+# Allow all origins only in local debug mode
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = os.getenv("FRONTEND_URL", "http://localhost:5173", "https://getcareerclarity.vercel.app").split(",")
 
 ROOT_URLCONF = 'core.urls'
 
@@ -88,29 +93,13 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # DATABASE SETTINGS
 # ==========================================
 
-# Add this at the VERY top of settings.py!
-
-import dj_database_url # Add this at the VERY top of settings.py
-
-# Replace your current DATABASES block with this:
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL'),
         conn_max_age=600,
-        ssl_require=True # Neon requires SSL for security
+        ssl_require=True if not DEBUG else False
     )
 }
-
-# ==========================================
-# PASSWORD VALIDATION
-# ==========================================
-
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
 
 # ==========================================
 # INTERNATIONALIZATION & STATIC FILES
@@ -124,8 +113,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# FIX 2: Use WhiteNoise compressed manifest storage so admin CSS/JS loads correctly.
-# The old config set StaticFilesStorage which bypassed WhiteNoise entirely.
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
@@ -156,3 +143,12 @@ else:
         print("Firebase initialized via local JSON file.")
     else:
         print("WARNING: Firebase credentials missing! Auth will fail.")
+
+# ==========================================
+# PRODUCTION SECURITY
+# ==========================================
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
