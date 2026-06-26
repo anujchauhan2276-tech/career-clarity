@@ -63,7 +63,7 @@ MIDDLEWARE = [
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    CORS_ALLOWED_ORIGINS = os.getenv("FRONTEND_URL", "http://localhost:5173").split(",")
+    CORS_ALLOWED_ORIGINS = os.getenv("FRONTEND_URL", "http://localhost:5173", "https://getcareerclarity.vercel.app").split(",")
 
 ROOT_URLCONF = 'core.urls'
 
