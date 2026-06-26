@@ -3,11 +3,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from firebase_admin import auth as firebase_auth
-
+from django.views.decorators.csrf import csrf_exempt
 from .models import Roadmap, Feedback
 from .serializers import RoadmapSerializer, FeedbackSerializer
 
 # --- SECURITY HELPER FUNCTION ---
+@csrf_exempt
 def verify_firebase_token(request):
     """Extracts and verifies the token from the Authorization header."""
     auth_header = request.headers.get('Authorization')
@@ -21,6 +22,7 @@ def verify_firebase_token(request):
         return None
 
 # --- ROADMAP API (MANUAL ONLY) ---
+@csrf_exempt
 @api_view(['POST'])
 def get_roadmap(request):
     course_id = request.data.get('courseId')
@@ -49,6 +51,7 @@ def get_roadmap(request):
 
 
 # --- FEEDBACK API ---
+@csrf_exempt
 @api_view(['GET', 'POST'])
 def feedback_list_create(request):
     if request.method == 'GET':
@@ -70,6 +73,7 @@ def feedback_list_create(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
 @api_view(['DELETE'])
 def feedback_delete(request, pk):
     user_data = verify_firebase_token(request)

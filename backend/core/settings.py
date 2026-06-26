@@ -24,8 +24,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Safely parses "true" or "false" from env
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-# Allows local dev and your specific Render URL
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,127.0.0.2,career-clarity-api.onrender.com").split(",")
+# Allows all hosts in production for maximum connectivity
+ALLOWED_HOSTS = ['*']
 
 # ==========================================
 # APPLICATION DEFINITION
@@ -44,7 +44,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # Must be first
+    'corsheaders.middleware.CorsMiddleware', # MUST BE FIRST
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -56,19 +56,19 @@ MIDDLEWARE = [
 ]
 
 # ==========================================
-# CORS & CSRF (FIXES THE "CORS ERROR")
+# CORS & CSRF SETTINGS
 # ==========================================
 
-# 1. Get the frontend URL from environment (default to localhost)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173,https://getcareerclarity.vercel.app")
-ALLOWED_URLS = FRONTEND_URL.split(",")
+# Use the nuclear option for CORS during deployment to ensure it works
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = ALLOWED_URLS
-CSRF_TRUSTED_ORIGINS = ALLOWED_URLS
-
-# Allow all origins only in local debug mode
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+# Add your Vercel URL here for CSRF protection
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://getcareerclarity.vercel.app")
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://getcareerclarity.vercel.app"
+]
 
 ROOT_URLCONF = 'core.urls'
 
@@ -90,19 +90,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 # ==========================================
-# DATABASE SETTINGS
+# DATABASE SETTINGS (Postgres / Neon)
 # ==========================================
 
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL'),
         conn_max_age=600,
+        # Neon requires SSL in production. Locally we disable it if DEBUG is True.
         ssl_require=True if not DEBUG else False
     )
 }
 
 # ==========================================
-# INTERNATIONALIZATION & STATIC FILES
+# STATIC FILES (WhiteNoise)
 # ==========================================
 
 LANGUAGE_CODE = 'en-us'
@@ -122,7 +123,7 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==========================================
-# FIREBASE ADMIN SDK INITIALIZATION
+# FIREBASE ADMIN SDK
 # ==========================================
 
 firebase_env_creds = os.getenv('FIREBASE_JSON_CREDS')
@@ -134,7 +135,7 @@ if firebase_env_creds:
         firebase_admin.initialize_app(cred)
         print("Firebase initialized via Environment Variable.")
     except Exception as e:
-        print(f"Failed to load Firebase from Environment Variable: {e}")
+        print(f"Failed to load Firebase: {e}")
 else:
     FIREBASE_KEY_PATH = os.path.join(BASE_DIR, 'firebase-service-account.json')
     if os.path.exists(FIREBASE_KEY_PATH):
@@ -142,13 +143,14 @@ else:
         firebase_admin.initialize_app(cred)
         print("Firebase initialized via local JSON file.")
     else:
-        print("WARNING: Firebase credentials missing! Auth will fail.")
+        print("WARNING: Firebase credentials missing!")
 
 # ==========================================
 # PRODUCTION SECURITY
 # ==========================================
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = True
+    # CRITICAL: Keep this False on Render!
+    SECURE_SSL_REDIRECT = False 
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
