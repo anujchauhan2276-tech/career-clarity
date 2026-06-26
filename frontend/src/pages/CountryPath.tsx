@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
-import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
+import { countryRoadmaps, premiumRoadmaps, nativeCountryRoadmaps, nativePremiumRoadmaps } from "../data/countryRoadmaps";
 import { ChevronRight, Lock, Unlock, Search, XCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -9,7 +9,7 @@ const COUNTRIES: Record<string, string> = {
   uk: "United Kingdom", de: "Germany", es: "Spain", fr: "France", ru: "Russia",
 };
 
-// 1. HARDCODED UI TRANSLATIONS FOR HEADERS AND BUTTONS
+// UI Translations
 const UI_DICT: Record<string, any> = {
   en: { title: "Pathways for", subtitle: "Explore the top in-demand career and educational roadmaps tailored to your region.", search: "Search roadmaps in", noResults: "No roadmaps found", noResultsDesc: "We couldn't find any paths matching", traditional: "Traditional Pathways", bonus: "Bonus Pathways", bonusSub: "(Emerging & Underrated)", premium: "Premium Pathways", premiumSub: "(Advanced, Modern & Entrepreneurial)", back: "Back to Country Selector", lang: "Language:", premiumBadge: "Premium" },
   jp: { title: "の経路", subtitle: "あなたの地域に合わせた、需要の高いキャリアと教育のロードマップを探索してください。", search: "検索...", noResults: "ロードマップが見つかりません", noResultsDesc: "一致する経路が見つかりませんでした:", traditional: "伝統的な経路", bonus: "ボーナス経路", bonusSub: "(新興・過小評価)", premium: "プレミアム経路", premiumSub: "(高度・現代的・起業家)", back: "国選択に戻る", lang: "表示言語:", premiumBadge: "プレミアム" },
@@ -32,6 +32,7 @@ export default function CountryPath() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+  
   const [searchQuery, setSearchQuery] = useState("");
 
   if (!countryId || !COUNTRIES[countryId]) {
@@ -39,9 +40,9 @@ export default function CountryPath() {
   }
 
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId);
+  
   const [language, setLanguage] = useState<"Native" | "English">("English");
   
-  // 2. AUTO-TRANSLATION STATE
   const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({});
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -52,7 +53,6 @@ export default function CountryPath() {
 
   const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT['en'];
 
-  // 3. THE ON-THE-FLY TRANSLATION ENGINE
   useEffect(() => {
     if (language === 'English' || !supportsNative) {
         setTranslatedTitles({});
@@ -64,37 +64,53 @@ export default function CountryPath() {
     const cached = localStorage.getItem(cacheKey);
     
     if (cached) {
-        setTranslatedTitles(JSON.parse(cached));
-        return;
+        const parsedCache = JSON.parse(cached);
+        if (Object.keys(parsedCache).length > 50) {
+            setTranslatedTitles(parsedCache);
+            return;
+        }
     }
 
     const translateAll = async () => {
         setIsTranslating(true);
         const allToTranslate = [...traditionalPaths, ...bonusPaths, ...premiumRoadmaps];
         const dict: Record<string, string> = {};
+        let successCount = 0;
         
         try {
-            // Batch process strings to translate them all in a single free API call!
-            const chunkSize = 40;
+            const chunkSize = 15; 
             for(let i=0; i < allToTranslate.length; i+=chunkSize) {
                 const chunk = allToTranslate.slice(i, i+chunkSize);
                 const text = chunk.join("\n");
                 
-                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
-                const data = await res.json();
+                try {
+                    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
+                    if (!res.ok) throw new Error("Translation blocked by Google.");
+                    
+                    const data = await res.json();
+                    
+                    const translatedText = data[0].map((item: any) => item[0] || "").join("");
+                    const translatedArray = translatedText.split("\n").map((s: string) => s.trim()).filter(Boolean);
+                    
+                    chunk.forEach((eng, idx) => {
+                        dict[eng] = translatedArray[idx] || eng;
+                    });
+                    successCount++;
+                } catch(chunkErr) {
+                    console.warn(`Translation chunk ${i} failed. Using English fallback.`, chunkErr);
+                    chunk.forEach(eng => dict[eng] = eng); 
+                }
                 
-                // Re-map the translated text to the exact English keys
-                const translatedText = data[0].map((item: any) => item[0]).join("");
-                const translatedArray = translatedText.split("\n");
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                chunk.forEach((eng, idx) => {
-                    dict[eng] = translatedArray[idx]?.trim() || eng;
-                });
+                setTranslatedTitles({...dict});
             }
-            setTranslatedTitles(dict);
-            localStorage.setItem(cacheKey, JSON.stringify(dict)); // Cache forever
+            
+            if (successCount > 0) {
+                localStorage.setItem(cacheKey, JSON.stringify(dict));
+            }
         } catch(e) {
-            console.error("Auto-translation failed", e);
+            console.error("Auto-translation critically failed", e);
         } finally {
             setIsTranslating(false);
         }
@@ -103,12 +119,11 @@ export default function CountryPath() {
     translateAll();
   }, [language, countryId, traditionalPaths, bonusPaths]);
 
-  // 4. DUAL-LANGUAGE SEARCH FILTER
+  // Dual-Language Search Filter
   const query = searchQuery.toLowerCase().trim();
   const filterPath = (path: string) => {
     const engTitle = path.toLowerCase();
     const translatedTitle = (translatedTitles[path] || path).toLowerCase();
-    // Allows user to search in English OR Native language simultaneously
     return engTitle.includes(query) || translatedTitle.includes(query);
   };
 
@@ -119,7 +134,6 @@ export default function CountryPath() {
 
   const renderCard = (path: string, idx: number, isPremiumRoute: boolean) => {
     const isLocked = isPremiumRoute && !hasPremiumAccess;
-    // Flips the UI text if Native is selected
     const displayTitle = (language === "Native" && translatedTitles[path]) ? translatedTitles[path] : path;
 
     return (
@@ -129,11 +143,13 @@ export default function CountryPath() {
           if (isLocked) {
             navigate("/pricing");
           } else {
-            // Notice we still pass the ENGLISH 'path' in the URL so the backend doesn't crash!
             navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
           }
         }}
-        className={`pathway-card flex flex-col justify-between p-5 min-h-[120px] rounded-2xl border transition-all duration-300 group cursor-pointer shadow-lg shadow-black/50 ${
+        // FIX: Adjusted padding and min-height for perfect 2-column mobile layout
+        className={`pathway-card flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-2xl border transition-all duration-300 group cursor-pointer shadow-lg shadow-black/50 ${
+          isTranslating && !translatedTitles[path] ? "animate-pulse opacity-70" : ""
+        } ${
           isPremiumRoute
             ? hasPremiumAccess
               ? "border-yellow-500/50 bg-[#1a1500] hover:bg-yellow-900/30 hover:-translate-y-1 hover:shadow-yellow-500/20"
@@ -141,27 +157,28 @@ export default function CountryPath() {
             : "border-white/10 bg-[#111] hover:bg-white/5 hover:border-purple-500/50 hover:-translate-y-1 hover:shadow-purple-500/20"
         }`}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-1 sm:gap-2">
           <span
-            className={`font-semibold transition-colors leading-snug ${isPremiumRoute ? "text-yellow-200/90 group-hover:text-yellow-100" : "text-white/90 group-hover:text-white"}`}
+            // FIX: Adjusted text size so it doesn't break out of the smaller mobile boxes
+            className={`font-semibold text-sm sm:text-base transition-colors leading-snug break-words ${isPremiumRoute ? "text-yellow-200/90 group-hover:text-yellow-100" : "text-white/90 group-hover:text-white"}`}
           >
             {displayTitle}
           </span>
           {isPremiumRoute &&
             (isLocked ? (
-              <Lock className="w-4 h-4 text-yellow-500/70 shrink-0 mt-1" />
+              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500/70 shrink-0 mt-1" />
             ) : (
-              <Unlock className="w-4 h-4 text-yellow-500 shrink-0 mt-1" />
+              <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500 shrink-0 mt-1" />
             ))}
         </div>
-        <div className="flex justify-end mt-4 items-center gap-3">
+        <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3">
           {isLocked && (
-            <span className="text-xs font-bold text-yellow-600/80 uppercase tracking-wider group-hover:text-yellow-500 transition-colors">
+            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider group-hover:text-yellow-500 transition-colors">
               {ui.premiumBadge}
             </span>
           )}
           <ChevronRight
-            className={`w-5 h-5 transition-colors ${isPremiumRoute ? "text-yellow-500/50 group-hover:text-yellow-400" : "text-white/20 group-hover:text-purple-400"}`}
+            className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isPremiumRoute ? "text-yellow-500/50 group-hover:text-yellow-400" : "text-white/20 group-hover:text-purple-400"}`}
           />
         </div>
       </div>
@@ -170,9 +187,8 @@ export default function CountryPath() {
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 flex flex-col items-center justify-start text-white">
-      <div className="container mx-auto px-6 max-w-7xl" ref={containerRef}>
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl" ref={containerRef}>
         
-        {/* Back Button */}
         <button
           onClick={() => navigate('/setup')}
           className="flex items-center gap-2 text-white/50 hover:text-white mb-8 transition-colors"
@@ -181,9 +197,8 @@ export default function CountryPath() {
           {ui.back}
         </button>
 
-        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold tracking-tight mb-6">
             {language === 'Native' && countryId !== 'en' ? '' : ui.title}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">
               {COUNTRIES[countryId]}
@@ -191,13 +206,12 @@ export default function CountryPath() {
             {language === 'Native' && countryId === 'jp' && 'の経路'}
             {language === 'Native' && ['kr', 'cn', 'in'].includes(countryId) && ui.title}
           </h1>
-          <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
             {ui.subtitle}
           </p>
 
-          {/* Language Toggle */}
           {supportsNative && (
-            <div className="flex items-center justify-center gap-3 mt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
               <span className="text-gray-400 font-medium flex items-center gap-2">
                 {isTranslating && <Loader2 className="w-4 h-4 animate-spin text-purple-500" />}
                 {ui.lang}
@@ -205,7 +219,7 @@ export default function CountryPath() {
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner">
                 <button
                   onClick={() => setLanguage("English")}
-                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "English" 
                       ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -215,7 +229,7 @@ export default function CountryPath() {
                 </button>
                 <button
                   onClick={() => setLanguage("Native")}
-                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "Native" 
                       ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -228,14 +242,13 @@ export default function CountryPath() {
           )}
         </div>
 
-        {/* Search Bar UI */}
         <div className="max-w-2xl mx-auto mb-16 relative group mt-8">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="w-5 h-5 text-gray-400 group-focus-within:text-purple-400 transition-colors" />
           </div>
           <input
             type="text"
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white/10 transition-all text-lg shadow-xl"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white/10 transition-all text-base sm:text-lg shadow-xl"
             placeholder={`${ui.search} ${COUNTRIES[countryId]}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -250,7 +263,6 @@ export default function CountryPath() {
           )}
         </div>
 
-        {/* Content Grids */}
         {totalResults === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
@@ -265,11 +277,12 @@ export default function CountryPath() {
           <>
             {filteredTraditional.length > 0 && (
               <div className="mb-16">
-                <h2 className="text-2xl md:text-3xl font-display font-bold mb-8 flex items-center gap-3">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3">
                   {ui.traditional}
                   <div className="h-px bg-white/20 flex-grow ml-4"></div>
                 </h2>
-                <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                {/* FIX: grid-cols-2 applied here forcing exactly 2 columns on mobile */}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                   {filteredTraditional.map((path, idx) => renderCard(path, idx, false))}
                 </div>
               </div>
@@ -277,14 +290,15 @@ export default function CountryPath() {
 
             {filteredBonus.length > 0 && (
               <div className="mb-16">
-                <h2 className="text-2xl md:text-3xl font-display font-bold mb-8 flex items-center gap-3 text-purple-300">
-                  {ui.bonus}
-                  <span className="text-sm font-normal text-purple-300/60 hidden sm:inline">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-purple-300">
+                  <span className="shrink-0">{ui.bonus}</span>
+                  <span className="text-xs sm:text-sm font-normal text-purple-300/60 hidden sm:inline shrink-0">
                     {ui.bonusSub}
                   </span>
-                  <div className="h-px bg-purple-500/30 flex-grow ml-4"></div>
+                  <div className="h-px bg-purple-500/30 flex-grow ml-2 sm:ml-4"></div>
                 </h2>
-                <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                {/* FIX: grid-cols-2 applied here */}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                   {filteredBonus.map((path, idx) => renderCard(path, idx + 50, false))}
                 </div>
               </div>
@@ -292,14 +306,15 @@ export default function CountryPath() {
 
             {filteredPremium.length > 0 && (
               <div className="mb-16">
-                <h2 className="text-2xl md:text-3xl font-display font-bold mb-8 flex items-center gap-3 text-yellow-500">
-                  {ui.premium}
-                  <span className="text-sm font-normal text-yellow-500/60 hidden sm:inline">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-yellow-500">
+                  <span className="shrink-0">{ui.premium}</span>
+                  <span className="text-xs sm:text-sm font-normal text-yellow-500/60 hidden sm:inline shrink-0">
                     {ui.premiumSub}
                   </span>
-                  <div className="h-px bg-yellow-500/30 flex-grow ml-4"></div>
+                  <div className="h-px bg-yellow-500/30 flex-grow ml-2 sm:ml-4"></div>
                 </h2>
-                <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                {/* FIX: grid-cols-2 applied here */}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                   {filteredPremium.map((path, idx) => renderCard(path, idx + 100, true))}
                 </div>
               </div>

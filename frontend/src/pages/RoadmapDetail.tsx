@@ -10,7 +10,7 @@ import {
   XCircle,
   Loader2,
   Check,
-  AlertTriangle
+  Map
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
@@ -46,13 +46,14 @@ export default function RoadmapDetail() {
   const { user, getToken } = useAuth();
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isOverloaded, setIsOverloaded] = useState(false);
+  const [error, setError] = useState(false); // Changed to simple boolean!
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
   const decodedCourse = courseId ? decodeURIComponent(courseId) : "";
+  const freePaths = countryId && countryRoadmaps[countryId] ? countryRoadmaps[countryId] : [];
+  const allPaths = [...freePaths, ...premiumRoadmaps];
 
   useEffect(() => {
     if (user && decodedCourse) {
@@ -65,7 +66,7 @@ export default function RoadmapDetail() {
             setCompletedSteps(data.completedSteps || []);
           }
         } catch (e: any) {
-          console.warn("Could not load progress", e?.message || e);
+          // Silent catch
         }
       };
       fetchProgress();
@@ -88,7 +89,7 @@ export default function RoadmapDetail() {
         lastUpdated: new Date().toISOString(),
       }));
     } catch (e: any) {
-      console.warn("Could not save progress", e?.message || e);
+      // Silent catch
     }
   };
 
@@ -108,8 +109,7 @@ export default function RoadmapDetail() {
 
     const fetchRoadmap = async () => {
       setLoading(true);
-      setError("");
-      setIsOverloaded(false);
+      setError(false);
 
       try {
         const token = await getToken();
@@ -123,7 +123,7 @@ export default function RoadmapDetail() {
           body: JSON.stringify({
             courseId: decodedCourse,
             countryId: countryId,
-            language: language // Simply send "Native" or "English". Backend handles translation map.
+            language: language === "Native" ? "the native language of the country" : "English"
           }),
         });
 
@@ -134,27 +134,26 @@ export default function RoadmapDetail() {
             return;
         }
 
-        // Specific check for Google's 503 Overloaded error
-        if (res.status === 503) {
-            setIsOverloaded(true);
-            throw new Error(dataJson.error);
-        }
-
         if (!res.ok) {
-          throw new Error(dataJson.error || "Failed to load roadmap.");
+          throw new Error("Not found");
         }
 
-        const safeArray = (item: any): any[] => {
+        // --- NEW SMART TEXT PARSER ---
+        // Takes your Django text box (with dashes or newlines) and makes it a perfect list!
+        const parseTextToList = (item: any): string[] => {
           if (Array.isArray(item)) return item;
           if (typeof item === "string") {
-            try { return JSON.parse(item); } 
-            catch { return item.split(",").map((s) => s.trim()).filter(Boolean); }
+            return item
+              .split('\n')
+              .map(line => line.replace(/^-\s*/, '').trim()) // Removes the dash if you typed one
+              .filter(line => line.length > 0);
           }
           return [];
         };
 
+        // Links parser (Kept as JSON!)
         const safeLinks = (linksData: any) => {
-          const arr = safeArray(linksData);
+          const arr = Array.isArray(linksData) ? linksData : [];
           return arr.map((l: string | { name?: string; url?: string }) => {
             if (typeof l === "string") {
               return { name: l, url: l.startsWith("http") ? l : `https://${l}` };
@@ -170,27 +169,27 @@ export default function RoadmapDetail() {
           title: dataJson.title || decodedCourse,
           description: dataJson.overview || "",
           future: dataJson.future_outlook || "",
-          pros: safeArray(dataJson.pros),
-          cons: safeArray(dataJson.cons),
+          pros: parseTextToList(dataJson.pros),
+          cons: parseTextToList(dataJson.cons),
           opportunity: dataJson.opportunity || "",
-          howTo: safeArray(dataJson.how_to),
+          howTo: parseTextToList(dataJson.how_to),
           proTip: dataJson.pro_tip || "",
           links: safeLinks(dataJson.links),
 
-          roadmapSteps: safeArray(dataJson.steps).map((step: any) => ({
+          roadmapSteps: (Array.isArray(dataJson.steps) ? dataJson.steps : []).map((step: any) => ({
             step: step.step_number || 1,
-            title: step.title || "Step",
+            title: step.title || "Phase",
             timeframe: step.timeframe || "",
             difficulty: step.difficulty || "Beginner",
-            tools: safeArray(step.tools),
+            tools: parseTextToList(step.tools),
             desc: step.description || "",
-            milestones: safeArray(step.milestones),
-            antiPatterns: safeArray(step.anti_patterns),
+            milestones: parseTextToList(step.milestones),
+            antiPatterns: parseTextToList(step.anti_patterns),
           })),
         });
       } catch (err: any) {
-        console.error("Fetch Error:", err);
-        setError(err.message || "Failed to load roadmap.");
+        // Just fail gracefully without ugly technical jargon
+        setError(true);
       } finally {
         setLoading(false);
         window.scrollTo(0, 0);
@@ -216,42 +215,15 @@ export default function RoadmapDetail() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 text-purple-300">
             <Loader2 className="w-12 h-12 animate-spin mb-6" />
-            <p className="text-xl font-medium animate-pulse text-white/80">
-              Generating roadmap with AI...
-            </p>
-            <p className="text-sm text-white/50 mt-2">This takes about 5 seconds.</p>
           </div>
         ) : error ? (
-           <div className="flex flex-col items-center justify-center py-32 text-red-400">
-             {isOverloaded ? (
-                 <>
-                   <AlertTriangle className="w-16 h-16 mb-4 text-yellow-500" />
-                   <h2 className="text-2xl font-bold mb-2 text-yellow-500">AI Servers Overloaded</h2>
-                   <p className="text-white/80 text-center max-w-md mb-6">
-                     {error}
-                   </p>
-                   <button 
-                     onClick={() => window.location.reload()} 
-                     className="px-6 py-3 bg-yellow-500 text-yellow-950 font-bold rounded-xl hover:bg-yellow-400 transition"
-                   >
-                     Try Again Now
-                   </button>
-                 </>
-             ) : (
-                 <>
-                   <XCircle className="w-16 h-16 mb-4" />
-                   <h2 className="text-2xl font-bold mb-2">Generation Failed</h2>
-                   <p className="text-white/60 text-center max-w-md">
-                     {error}
-                   </p>
-                   <button 
-                     onClick={() => window.location.reload()} 
-                     className="mt-6 px-6 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition"
-                   >
-                     Retry Generation
-                   </button>
-                 </>
-             )}
+           // --- BEAUTIFUL "COMING SOON" STATE ---
+           <div className="flex flex-col items-center justify-center py-32 text-gray-400">
+             <Map className="w-16 h-16 mb-4 text-white/20" />
+             <h2 className="text-2xl font-bold mb-2 text-white/80">Roadmap Coming Soon</h2>
+             <p className="text-center max-w-md">
+               We are currently crafting the optimal pathway for <strong>{decodedCourse}</strong>. Check back later!
+             </p>
            </div>
         ) : data ? (
           <>
@@ -336,47 +308,55 @@ export default function RoadmapDetail() {
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 w-full mb-4">
-                          {step.tools.map((tool, idx) => (
-                            <span key={idx} className="text-xs font-medium px-2 py-1 border border-indigo-500/30 text-indigo-300 rounded-md bg-indigo-500/10 h-auto break-words whitespace-normal max-w-full">
-                              {tool}
-                            </span>
-                          ))}
-                        </div>
+                        {step.tools.length > 0 && (
+                          <div className="flex flex-wrap gap-2 w-full mb-4">
+                            {step.tools.map((tool, idx) => (
+                              <span key={idx} className="text-xs font-medium px-2 py-1 border border-indigo-500/30 text-indigo-300 rounded-md bg-indigo-500/10 h-auto break-words whitespace-normal max-w-full">
+                                {tool}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
                         <p className="text-white/70 text-sm leading-relaxed mb-4 whitespace-pre-wrap break-words">
                           {step.desc}
                         </p>
 
-                        <div className="bg-black/30 rounded-xl p-4 border border-white/5 mt-4">
-                          <h4 className="text-xs font-bold text-white/80 uppercase tracking-wider mb-3 flex items-center gap-2">
-                             Key Milestones
-                          </h4>
-                          <ul className="space-y-2 mb-4">
-                            {step.milestones.map((milestone, mIdx) => (
-                              <li key={mIdx} className="text-sm text-white/70 flex gap-2 items-start break-words w-full">
-                                <span className="text-purple-400 mt-0.5 shrink-0">→</span>
-                                <span className="whitespace-pre-wrap flex-1">{milestone}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          
-                          {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <>
-                              <h4 className="text-xs font-bold text-red-400/80 uppercase tracking-wider mb-3 flex items-center gap-2 mt-4">
-                                Anti-Patterns (Avoid)
-                              </h4>
-                              <ul className="space-y-2">
-                                {step.antiPatterns.map((anti, aIdx) => (
-                                  <li key={aIdx} className="text-sm text-white/60 flex gap-2 items-start break-words w-full">
-                                    <span className="text-red-500/80 mt-0.5 shrink-0 w-3 text-center">×</span>
-                                    <span className="whitespace-pre-wrap flex-1">{anti}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </>
-                          )}
-                        </div>
+                        {(step.milestones.length > 0 || step.antiPatterns.length > 0) && (
+                          <div className="bg-black/30 rounded-xl p-4 border border-white/5 mt-4">
+                            {step.milestones.length > 0 && (
+                              <>
+                                <h4 className="text-xs font-bold text-white/80 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                  Key Milestones
+                                </h4>
+                                <ul className="space-y-2 mb-4">
+                                  {step.milestones.map((milestone, mIdx) => (
+                                    <li key={mIdx} className="text-sm text-white/70 flex gap-2 items-start break-words w-full">
+                                      <span className="text-purple-400 mt-0.5 shrink-0">→</span>
+                                      <span className="whitespace-pre-wrap flex-1">{milestone}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                            
+                            {step.antiPatterns.length > 0 && (
+                              <>
+                                <h4 className="text-xs font-bold text-red-400/80 uppercase tracking-wider mb-3 flex items-center gap-2 mt-4">
+                                  Anti-Patterns (Avoid)
+                                </h4>
+                                <ul className="space-y-2">
+                                  {step.antiPatterns.map((anti, aIdx) => (
+                                    <li key={aIdx} className="text-sm text-white/60 flex gap-2 items-start break-words w-full">
+                                      <span className="text-red-500/80 mt-0.5 shrink-0 w-3 text-center">×</span>
+                                      <span className="whitespace-pre-wrap flex-1">{anti}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                          </div>
+                        )}
 
                         {!user && (
                           <p className="text-xs text-white/40 mt-3 italic">
@@ -460,25 +440,27 @@ export default function RoadmapDetail() {
                 </div>
               </div>
 
-              <div className="detail-block bg-[#111] border border-white/10 rounded-2xl p-8">
-                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-blue-400">
-                  <LinkIcon className="w-6 h-6" /> References & Further Reading
-                </h3>
-                <ul className="space-y-3">
-                  {data.links.map((link, i) => (
-                    <li key={i} className="truncate">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-2 w-fit max-w-full"
-                      >
-                        <span className="truncate">{link.name}</span> <LinkIcon className="w-3 h-3 shrink-0" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {data.links.length > 0 && (
+                <div className="detail-block bg-[#111] border border-white/10 rounded-2xl p-8">
+                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-blue-400">
+                    <LinkIcon className="w-6 h-6" /> References & Further Reading
+                  </h3>
+                  <ul className="space-y-3">
+                    {data.links.map((link, i) => (
+                      <li key={i} className="truncate">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-2 w-fit max-w-full"
+                        >
+                          <span className="truncate">{link.name}</span> <LinkIcon className="w-3 h-3 shrink-0" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </>
         ) : null}

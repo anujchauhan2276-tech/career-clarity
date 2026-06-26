@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // NEW
+import { useNavigate } from "react-router-dom"; 
 import { useAuth } from "../contexts/AuthContext";
 import { Star, ChevronLeft, ChevronRight, Send, Trash2 } from "lucide-react";
 
@@ -13,14 +13,14 @@ export interface Feedback {
 }
 
 export default function FeedbackSection() {
-  const navigate = useNavigate(); // NEW
-  // FIX: Removed setLoginModalOpen
+  const navigate = useNavigate(); 
   const { user, getToken } = useAuth();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [text, setText] = useState("");
   const [rating, setRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -30,7 +30,7 @@ export default function FeedbackSection() {
         const data = await res.json();
         if (mounted) setFeedbacks(data.feedbacks || []);
       } catch (err) {
-        console.warn("Could not load feedbacks from Django", err);
+        // Silent catch for normal users
       }
     };
     fetchFeedbacks();
@@ -42,6 +42,8 @@ export default function FeedbackSection() {
     if (!text.trim() || !user || rating === 0) return;
 
     setSubmitting(true);
+    setErrorMsg("");
+    
     const payload = {
       name: user.name || "Anonymous",
       rating,
@@ -60,7 +62,7 @@ export default function FeedbackSection() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to authenticate with backend.");
+        throw new Error();
       }
 
       const savedFeedback = await res.json();
@@ -70,8 +72,7 @@ export default function FeedbackSection() {
       setRating(0);
       setCurrentIndex(0);
     } catch (error: any) {
-      console.warn("Failed to submit feedback to Django.", error);
-      alert("Failed to post feedback. Are you logged in?");
+      setErrorMsg("Unable to post review at this time. Please try again later.");
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +90,7 @@ export default function FeedbackSection() {
       });
 
       if (!res.ok) {
-        throw new Error("You don't have permission to delete this.");
+        throw new Error();
       }
 
       setFeedbacks((prev) => prev.filter((f) => f.id !== id));
@@ -100,8 +101,7 @@ export default function FeedbackSection() {
         setCurrentIndex(0);
       }
     } catch (error: any) {
-      console.warn("API delete failed.", error);
-      alert(error.message);
+      // Silent catch
     }
   };
 
@@ -130,7 +130,6 @@ export default function FeedbackSection() {
 
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-start">
           
-          {/* Form */}
           <div className="bg-white/[0.02] rounded-3xl p-8 lg:p-10 border border-white/10 relative overflow-hidden backdrop-blur-sm shadow-xl">
             <h3 className="text-2xl font-medium mb-8 text-gray-100">Leave Feedback</h3>
             
@@ -139,7 +138,6 @@ export default function FeedbackSection() {
                 <h4 className="text-xl font-medium mb-3 text-white">Join the conversation</h4>
                 <p className="text-gray-400 mb-8 max-w-xs leading-relaxed">Log in to leave a review and share your experience with the community.</p>
                 <button 
-                  // FIX: Safely route to login page
                   onClick={() => navigate('/login')}
                   className="bg-white text-black px-8 py-3 rounded-xl font-semibold shadow-lg hover:bg-gray-100 transition focus:ring-2 focus:ring-white/50"
                 >
@@ -164,6 +162,12 @@ export default function FeedbackSection() {
                  </button>
                </div>
             ) : null}
+
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
+                {errorMsg}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6 relative z-0">
               <div>
@@ -206,7 +210,6 @@ export default function FeedbackSection() {
             </form>
           </div>
 
-          {/* Carousel */}
           <div className="flex flex-col justify-center h-full">
             {feedbacks.length === 0 ? (
               <div className="text-center p-12 bg-white/[0.02] rounded-3xl border border-white/5">

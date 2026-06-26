@@ -1,38 +1,206 @@
-// 60 High-Value, Advanced, and Entrepreneurial Premium Roadmaps (Available globally)
 export const premiumRoadmaps: string[] = [
-  // Advanced AI & Data
   "Large Language Model (LLM) Architect", "Prompt Engineering & AI Whisperer", "Chief AI Officer (CAIO)",
   "Ph.D. in Artificial Intelligence", "Generative AI Researcher", "Computer Vision Specialist",
-  "NLP Engineer (Natural Language Processing)", "MLOps & AI Infrastructure Engineer", "Cognitive Computing Scientist",
+  "NLP Engineer", "MLOps & AI Infrastructure Engineer", "Cognitive Computing Scientist",
   "Deepfake Detection & AI Security Analyst", "Ph.D. in Data Science", "Data Privacy Officer (DPO)",
-  
-  // Future Frontier Tech
-  "Quantum Computing Engineer", "Brain-Computer Interface Engineer", "Digital Twin Simulation Architect",
+  "Quantum Computing Engineer", "Brain-Computer Interface Engineer", "Digital Twin Architect",
   "Spatial Computing Developer (AR/VR)", "Space & Satellite Systems Engineer", "Neuromorphic Hardware Engineer",
   "6G Network Architect", "Autonomous Vehicle Systems Engineer", "Robotic Process Automation (RPA) Lead",
   "Cyber Warfare Specialist", "Zero Trust Architecture Consultant", "Chief Information Security Officer (CISO)",
-  
-  // High-Finance & Web3
   "Quantitative Finance Ph.D.", "High-Frequency Trading System Dev", "Algorithmic Trading Quant",
   "Crypto Tokenomics Designer", "DeFi Protocol Engineer", "Smart Contract Auditor",
   "Venture Capital Analyst", "Angel Investor / Syndicate Lead", "Search Fund Entrepreneur",
   "Web3/DAO Contributor", "Blockchain Solutions Architect", "FinTech Startup Founder",
-  
-  // Advanced Science & Niche Academia
   "Ph.D. in Bioinformatics", "Ph.D. in Synthetic Biology", "Ph.D. in Quantum Physics",
   "Ph.D. in Cryptography", "Ph.D. in Climate Science", "Postdoc in Nanotechnology",
   "Sustainable Energy Grid Architect", "Asteroid Mining Strategist", "Smart City Systems Architect",
   "Ph.D. in Economics", "Ph.D. in Sociology", "Ph.D. in Cognitive Psychology",
-  
-  // Executive & Entrepreneurship
   "Y-Combinator Startup Founder", "Solo Entrepreneur (Bootstrapped SaaS)", "Chief Technology Officer (CTO)",
   "Chief Product Officer (CPO)", "Chief Sustainability Officer (CSO)", "Fractional CMO",
   "Fractional CFO", "Growth Hacker / Head of Growth", "Corporate Innovation Lab Director",
-  "HealthTech Innovator", "EdTech Founder", "E-commerce Empire Builder",
+  "HealthTech Innovator", "EdTech Founder", "E-commerce Empire Builder"
 ];
 
-// 70 Regional Roadmaps per country (50 Traditional Free + 20 Bonus Free)
-// ALL strings here must be strictly in English so the translation engine can hook into them!
+// PERFECT NATIVE TRANSLATIONS FOR PREMIUM ROLES
+export const nativePremiumRoadmaps: Record<string, string[]> = {
+  es: [
+    "Arquitecto de Modelos de Lenguaje (LLM)", "Ingeniero de Prompts y Experto en IA", "Chief AI Officer (CAIO)",
+    "Doctorado en Inteligencia Artificial", "Investigador en IA Generativa", "Especialista en Visión Artificial",
+    "Ingeniero de PNL", "Ingeniero MLOps e Infraestructura IA", "Científico de Computación Cognitiva",
+    "Analista de Detección de Deepfakes", "Doctorado en Ciencia de Datos", "Delegado de Protección de Datos (DPO)",
+    "Ingeniero en Computación Cuántica", "Ingeniero de Interfaz Cerebro-Computadora", "Arquitecto de Gemelos Digitales",
+    "Desarrollador de Computación Espacial (AR/VR)", "Ingeniero de Sistemas Espaciales y Satélites", "Ingeniero de Hardware Neuromórfico",
+    "Arquitecto de Redes 6G", "Ingeniero de Vehículos Autónomos", "Líder de Automatización Robótica (RPA)",
+    "Especialista en Ciberguerra", "Consultor de Arquitectura Zero Trust", "Chief Information Security Officer (CISO)",
+    "Doctorado en Finanzas Cuantitativas", "Desarrollador de Trading de Alta Frecuencia", "Analista Cuantitativo de Trading",
+    "Diseñador de Tokenomics", "Ingeniero de Protocolos DeFi", "Auditor de Smart Contracts",
+    "Analista de Venture Capital", "Inversor Ángel / Líder de Sindicato", "Emprendedor de Search Fund",
+    "Contribuidor Web3/DAO", "Arquitecto de Soluciones Blockchain", "Fundador de Startup FinTech",
+    "Doctorado en Bioinformática", "Doctorado en Biología Sintética", "Doctorado en Física Cuántica",
+    "Doctorado en Criptografía", "Doctorado en Ciencias del Clima", "Postdoctorado en Nanotecnología",
+    "Arquitecto de Redes Energéticas Sostenibles", "Estratega de Minería de Asteroides", "Arquitecto de Smart Cities",
+    "Doctorado en Economía", "Doctorado en Sociología", "Doctorado en Psicología Cognitiva",
+    "Fundador de Startup Y-Combinator", "Solo-Emprendedor (SaaS Bootstrapped)", "Chief Technology Officer (CTO)",
+    "Chief Product Officer (CPO)", "Chief Sustainability Officer (CSO)", "CMO Fraccional",
+    "CFO Fraccional", "Growth Hacker / Director de Crecimiento", "Director de Laboratorio de Innovación",
+    "Innovador en HealthTech", "Fundador EdTech", "Creador de Imperio E-commerce"
+  ],
+  de: [
+    "LLM Architekt", "Prompt Engineer & KI-Flüsterer", "Chief AI Officer (CAIO)",
+    "Ph.D. in Künstlicher Intelligenz", "Generative KI Forscher", "Computer Vision Spezialist",
+    "NLP Engineer", "MLOps & KI Infrastruktur Engineer", "Cognitive Computing Scientist",
+    "Deepfake Detection Analyst", "Ph.D. in Data Science", "Datenschutzbeauftragter (DPO)",
+    "Quantencomputer-Ingenieur", "Brain-Computer Interface Engineer", "Digital Twin Architect",
+    "AR/VR Entwickler", "Space & Satellite Systems Engineer", "Neuromorphic Hardware Engineer",
+    "6G Netzwerkarchitekt", "Autonomous Vehicle Engineer", "Robotic Process Automation (RPA) Lead",
+    "Cyber Warfare Spezialist", "Zero Trust Architecture Consultant", "Chief Information Security Officer (CISO)",
+    "Ph.D. Quantitative Finance", "High-Frequency Trading Dev", "Algorithmic Trading Quant",
+    "Crypto Tokenomics Designer", "DeFi Protocol Engineer", "Smart Contract Auditor",
+    "Venture Capital Analyst", "Angel Investor", "Search Fund Entrepreneur",
+    "Web3/DAO Contributor", "Blockchain Solutions Architect", "FinTech Startup Gründer",
+    "Ph.D. in Bioinformatik", "Ph.D. in Synthetischer Biologie", "Ph.D. in Quantenphysik",
+    "Ph.D. in Kryptographie", "Ph.D. in Klimawissenschaften", "Postdoc in Nanotechnologie",
+    "Sustainable Energy Grid Architect", "Asteroid Mining Strategist", "Smart City Systems Architect",
+    "Ph.D. in Wirtschaftswissenschaften", "Ph.D. in Soziologie", "Ph.D. in Kognitionspsychologie",
+    "Y-Combinator Startup Gründer", "Solo-Entrepreneur (Bootstrapped SaaS)", "Chief Technology Officer (CTO)",
+    "Chief Product Officer (CPO)", "Chief Sustainability Officer (CSO)", "Fractional CMO",
+    "Fractional CFO", "Growth Hacker", "Director Corporate Innovation",
+    "HealthTech Innovator", "EdTech Gründer", "E-Commerce Imperium Builder"
+  ],
+  fr: [
+    "Architecte LLM", "Ingénieur Prompt & Expert IA", "Directeur de l'IA (CAIO)",
+    "Doctorat en Intelligence Artificielle", "Chercheur en IA Générative", "Spécialiste en Vision par Ordinateur",
+    "Ingénieur NLP", "Ingénieur MLOps", "Chercheur en Informatique Cognitive",
+    "Analyste Cybersécurité & Deepfakes", "Doctorat en Data Science", "Délégué à la Protection des Données (DPO)",
+    "Ingénieur en Informatique Quantique", "Ingénieur Interface Cerveau-Machine", "Architecte Jumeaux Numériques",
+    "Développeur AR/VR", "Ingénieur Systèmes Spatiaux", "Ingénieur Matériel Neuromorphique",
+    "Architecte Réseau 6G", "Ingénieur Véhicules Autonomes", "Lead RPA",
+    "Spécialiste en Cyberguerre", "Consultant Architecture Zero Trust", "Directeur de la Cybersécurité (CISO)",
+    "Doctorat en Finance Quantitative", "Développeur Trading Haute Fréquence", "Quant (Trading Algorithmique)",
+    "Designer Tokenomics", "Ingénieur Protocole DeFi", "Auditeur Smart Contracts",
+    "Analyste en Capital-Risque", "Business Angel", "Entrepreneur Search Fund",
+    "Contributeur Web3/DAO", "Architecte Solutions Blockchain", "Fondateur Startup FinTech",
+    "Doctorat en Bioinformatique", "Doctorat en Biologie Synthétique", "Doctorat en Physique Quantique",
+    "Doctorat en Cryptographie", "Doctorat en Climatologie", "Postdoc en Nanotechnologie",
+    "Architecte Réseau Énergétique", "Stratège Minier Spatial", "Architecte Smart City",
+    "Doctorat en Économie", "Doctorat en Sociologie", "Doctorat en Psychologie Cognitive",
+    "Fondateur Startup Y-Combinator", "Solo-Entrepreneur (SaaS)", "Directeur Technique (CTO)",
+    "Directeur Produit (CPO)", "Directeur du Développement Durable (CSO)", "CMO à temps partagé",
+    "CFO à temps partagé", "Growth Hacker", "Directeur de l'Innovation",
+    "Innovateur HealthTech", "Fondateur EdTech", "Bâtisseur d'Empire E-commerce"
+  ],
+  jp: [
+    "LLMアーキテクト", "プロンプトエンジニア＆AIの専門家", "最高AI責任者 (CAIO)",
+    "人工知能の博士号 (Ph.D.)", "生成AI研究者", "コンピュータービジョン専門家",
+    "自然言語処理 (NLP) エンジニア", "MLOps＆AIインフラエンジニア", "コグニティブ・コンピューティング科学者",
+    "ディープフェイク検出＆AIセキュリティアナリスト", "データサイエンス博士号", "データ保護責任者 (DPO)",
+    "量子コンピューティングエンジニア", "ブレイン・マシン・インターフェースエンジニア", "デジタルツインアーキテクト",
+    "AR/VR開発者", "宇宙・衛星システムエンジニア", "ニューロモルフィックハードウェアエンジニア",
+    "6Gネットワークアーキテクト", "自動運転システムエンジニア", "RPAリード",
+    "サイバー戦スペシャリスト", "ゼロトラストアーキテクチャコンサルタント", "最高情報セキュリティ責任者 (CISO)",
+    "計量ファイナンス博士号", "高頻度取引 (HFT) システム開発", "アルゴリズム取引クオンツ",
+    "暗号資産トークノミクスデザイナー", "DeFiプロトコルエンジニア", "スマートコントラクト監査役",
+    "ベンチャーキャピタルアナリスト", "エンジェル投資家", "サーチファンド起業家",
+    "Web3/DAOコントリビューター", "ブロックチェーンソリューションアーキテクト", "FinTechスタートアップ創業者",
+    "バイオインフォマティクス博士号", "合成生物学博士号", "量子物理学博士号",
+    "暗号学博士号", "気候科学博士号", "ナノテクノロジーのポスドク",
+    "持続可能なエネルギーグリッドアーキテクト", "小惑星採掘ストラテジスト", "スマートシティシステムアーキテクト",
+    "経済学博士号", "社会学博士号", "認知心理学博士号",
+    "Yコンビネータースタートアップ創業者", "ソロ起業家（ブートストラップSaaS）", "最高技術責任者 (CTO)",
+    "最高製品責任者 (CPO)", "最高サステナビリティ責任者 (CSO)", "フラクショナルCMO",
+    "フラクショナルCFO", "グロースハッカー", "企業イノベーションラボディレクター",
+    "HealthTechイノベーター", "EdTech創業者", "Eコマース帝国構築者"
+  ],
+  in: [
+    "लार्ज लैंग्वेज मॉडल (LLM) आर्किटेक्ट", "प्रॉम्प्ट इंजीनियरिंग और AI विशेषज्ञ", "मुख्य AI अधिकारी (CAIO)",
+    "आर्टिफिशियल इंटेलिजेंस में Ph.D.", "जनरेटिव AI रिसर्चर", "कंप्यूटर विजन स्पेशलिस्ट",
+    "NLP इंजीनियर", "MLOps और AI इंफ्रास्ट्रक्चर इंजीनियर", "कॉग्निटिव कंप्यूटिंग साइंटिस्ट",
+    "डीपफेक डिटेक्शन एनालिस्ट", "डेटा साइंस में Ph.D.", "डेटा प्राइवेसी ऑफिसर (DPO)",
+    "क्वांटम कंप्यूटिंग इंजीनियर", "ब्रेन-कंप्यूटर इंटरफेस इंजीनियर", "डिजिटल ट्विन आर्किटेक्ट",
+    "AR/VR डेवलपर", "स्पेस और सैटेलाइट सिस्टम इंजीनियर", "न्यूरोमोर्फिक हार्डवेयर इंजीनियर",
+    "6G नेटवर्क आर्किटेक्ट", "ऑटोनॉमस व्हीकल सिस्टम इंजीनियर", "RPA लीड",
+    "साइबर वारफेयर स्पेशलिस्ट", "जीरो ट्रस्ट आर्किटेक्चर कंसलटेंट", "मुख्य सूचना सुरक्षा अधिकारी (CISO)",
+    "क्वांटिटेटिव फाइनेंस में Ph.D.", "हाई-फ्रीक्वेंसी ट्रेडिंग सिस्टम देव", "एल्गोरिथम ट्रेडिंग क्वांट",
+    "क्रिप्टो टोकनोमिक्स डिजाइनर", "DeFi प्रोटोकॉल इंजीनियर", "स्मार्ट कॉन्ट्रैक्ट ऑडिटर",
+    "वेंचर कैपिटल एनालिस्ट", "एंजेल इन्वेस्टर", "सर्च फंड एंटरप्रेन्योर",
+    "Web3/DAO कंट्रीब्यूटर", "ब्लॉकचेन सॉल्यूशंस आर्किटेक्ट", "FinTech स्टार्टअप फाउंडर",
+    "बायोइन्फॉर्मेटिक्स में Ph.D.", "सिंथेटिक बायोलॉजी में Ph.D.", "क्वांटम भौतिकी में Ph.D.",
+    "क्रिप्टोग्राफी में Ph.D.", "जलवायु विज्ञान में Ph.D.", "नैनोटेक्नोलॉजी में पोस्टडॉक",
+    "सस्टेनेबल एनर्जी ग्रिड आर्किटेक्ट", "एस्टेरॉयड माइनिंग स्ट्रेटेजिस्ट", "स्मार्ट सिटी सिस्टम आर्किटेक्ट",
+    "अर्थशास्त्र में Ph.D.", "समाजशास्त्र में Ph.D.", "संज्ञानात्मक मनोविज्ञान में Ph.D.",
+    "Y-Combinator स्टार्टअप फाउंडर", "सोलो एंटरप्रेन्योर (SaaS)", "मुख्य प्रौद्योगिकी अधिकारी (CTO)",
+    "मुख्य उत्पाद अधिकारी (CPO)", "मुख्य स्थिरता अधिकारी (CSO)", "फ्रैक्शनल CMO",
+    "फ्रैक्शनल CFO", "ग्रोथ हैकर", "कॉरपोरेट इनोवेशन डायरेक्टर",
+    "HealthTech इनोवेटर", "EdTech फाउंडर", "ई-कॉमर्स एम्पायर बिल्डर"
+  ],
+  cn: [
+    "大型语言模型 (LLM) 架构师", "提示词工程与AI专家", "首席人工智能官 (CAIO)",
+    "人工智能博士", "生成式AI研究员", "计算机视觉专家",
+    "NLP工程师", "MLOps与AI基础设施工程师", "认知计算科学家",
+    "深度伪造检测与AI安全分析师", "数据科学博士", "数据隐私官 (DPO)",
+    "量子计算工程师", "脑机接口工程师", "数字孪生架构师",
+    "空间计算开发者 (AR/VR)", "空间与卫星系统工程师", "神经形态硬件工程师",
+    "6G网络架构师", "自动驾驶系统工程师", "RPA负责人",
+    "网络战专家", "零信任架构顾问", "首席信息安全官 (CISO)",
+    "量化金融博士", "高频交易系统开发", "量化算法交易员",
+    "加密代币经济学设计师", "DeFi协议工程师", "智能合约审计师",
+    "风险投资分析师", "天使投资人", "搜索基金创业者",
+    "Web3/DAO贡献者", "区块链解决方案架构师", "金融科技初创创始人",
+    "生物信息学博士", "合成生物学博士", "量子物理学博士",
+    "密码学博士", "气候科学博士", "纳米技术博士后",
+    "可持续能源电网架构师", "小行星采矿战略家", "智慧城市系统架构师",
+    "经济学博士", "社会学博士", "认知心理学博士",
+    "Y-Combinator初创创始人", "独立创业者 (SaaS)", "首席技术官 (CTO)",
+    "首席产品官 (CPO)", "首席可持续发展官 (CSO)", "兼职CMO",
+    "兼职CFO", "增长黑客", "企业创新实验室主任",
+    "医疗科技创新者", "教育科技创始人", "电商帝国缔造者"
+  ],
+  kr: [
+    "대형 언어 모델 (LLM) 아키텍트", "프롬프트 엔지니어링 및 AI 전문가", "최고 AI 책임자 (CAIO)",
+    "인공지능 박사", "생성형 AI 연구원", "컴퓨터 비전 전문가",
+    "NLP 엔지니어", "MLOps 및 AI 인프라 엔지니어", "인지 컴퓨팅 과학자",
+    "딥페이크 탐지 및 AI 보안 분석가", "데이터 과학 박사", "개인정보 보호 책임자 (DPO)",
+    "양자 컴퓨팅 엔지니어", "뇌-컴퓨터 인터페이스 엔지니어", "디지털 트윈 아키텍트",
+    "공간 컴퓨팅 개발자 (AR/VR)", "우주 및 위성 시스템 엔지니어", "뉴로모픽 하드웨어 엔지니어",
+    "6G 네트워크 아키텍트", "자율주행 시스템 엔지니어", "RPA 리더",
+    "사이버전 전문가", "제로 트러스트 아키텍처 컨설턴트", "최고 정보 보안 책임자 (CISO)",
+    "계량 금융 박사", "고빈도 매매(HFT) 시스템 개발자", "알고리즘 트레이딩 퀀트",
+    "크립토 토크노믹스 디자이너", "DeFi 프로토콜 엔지니어", "스마트 컨트랙트 감사원",
+    "벤처 캐피탈 분석가", "엔젤 투자자", "서치 펀드 기업가",
+    "Web3/DAO 기여자", "블록체인 솔루션 아키텍트", "핀테크 스타트업 창업자",
+    "생물정보학 박사", "합성생물학 박사", "양자 물리학 박사",
+    "암호학 박사", "기후 과학 박사", "나노 기술 포스트닥터",
+    "지속 가능한 에너지 그리드 아키텍트", "소행성 채굴 전략가", "스마트 시티 시스템 아키텍트",
+    "경제학 박사", "사회학 박사", "인지 심리학 박사",
+    "Y-Combinator 스타트업 창업자", "1인 기업가 (SaaS)", "최고 기술 책임자 (CTO)",
+    "최고 제품 책임자 (CPO)", "최고 지속가능성 책임자 (CSO)", "프랙셔널 CMO",
+    "프랙셔널 CFO", "그로스 해커", "기업 혁신 랩 디렉터",
+    "헬스테크 혁신가", "에듀테크 창업자", "이커머스 제국 건설자"
+  ],
+  ru: [
+    "Архитектор LLM", "Prompt-инженер и AI Эксперт", "Директор по ИИ (CAIO)",
+    "Кандидат наук (Ph.D.) по ИИ", "Исследователь генеративного ИИ", "Специалист по компьютерному зрению",
+    "NLP-инженер", "MLOps и AI Инфраструктура", "Ученый в области когнитивных вычислений",
+    "Аналитик по дипфейкам и кибербезопасности", "Кандидат наук (Ph.D.) по Data Science", "Специалист по защите данных (DPO)",
+    "Инженер по квантовым вычислениям", "Инженер нейроинтерфейсов", "Архитектор цифровых двойников",
+    "Разработчик AR/VR", "Инженер космических систем", "Инженер нейроморфного оборудования",
+    "Архитектор сетей 6G", "Инженер систем автопилота", "Ведущий специалист RPA",
+    "Специалист по кибервойнам", "Консультант по Zero Trust", "Директор по информационной безопасности (CISO)",
+    "Кандидат наук (Ph.D.) по количественным финансам", "Разработчик HFT-систем", "Квант алгоритмического трейдинга",
+    "Дизайнер токеномики", "Инженер DeFi протоколов", "Аудитор смарт-контрактов",
+    "Аналитик венчурного капитала", "Ангел-инвестор", "Предприниматель Search Fund",
+    "Участник Web3/DAO", "Архитектор блокчейн-решений", "Основатель FinTech стартапа",
+    "Кандидат наук по биоинформатике", "Кандидат наук по синтетической биологии", "Кандидат наук по квантовой физике",
+    "Кандидат наук по криптографии", "Кандидат наук по климатологии", "Постдок в нанотехнологиях",
+    "Архитектор устойчивых энергосетей", "Стратег по добыче на астероидах", "Архитектор систем умного города",
+    "Кандидат экономических наук", "Кандидат социологических наук", "Кандидат психологических наук",
+    "Основатель стартапа Y-Combinator", "Соло-предприниматель (SaaS)", "Технический директор (CTO)",
+    "Директор по продукту (CPO)", "Директор по устойчивому развитию (CSO)", "Fractional CMO",
+    "Fractional CFO", "Гроуз-хакер", "Директор корпоративных инноваций",
+    "Инноватор в HealthTech", "Основатель EdTech", "Создатель E-commerce империи"
+  ]
+}
+
 export const countryRoadmaps: Record<string, string[]> = {
   us: [
     "Computer Science (B.S.)", "Software Engineering", "Data Science Roadmap", "Pre-Med Track", "Medical School (M.D./D.O.)", 
@@ -203,5 +371,145 @@ export const countryRoadmaps: Record<string, string[]> = {
     "E-commerce Specialist", "EdTech Startup Founder", "FinTech Developer", "AgriTech Specialist", "Cybersecurity (Bug Bounty)", 
     "Drone Engineering/Op", "Space Tech & Analytics", "Arctic Tech Engineer", "Import-Substitution Tech", "AR/VR Developer", 
     "Indie Hacker", "HealthTech App Dev", "Smart City Infrastructure", "Green Tech (Local)", "Custom Software Dev Firm"
+  ]
+};
+
+// PERFECT NATIVE TRANSLATIONS FOR COUNTRY-SPECIFIC ROLES
+export const nativeCountryRoadmaps: Record<string, string[]> = {
+  es: [
+    "Ingeniería Informática", "Desarrollo de Software", "Ciencia de Datos e IA", "Ciberseguridad", "Ingeniería de Telecomunicaciones", 
+    "Medicina (MIR)", "Odontología", "Farmacia", "Derecho (Grado + Máster Acceso)", "Oposiciones Judicatura/Fiscalía", 
+    "Administración y Dirección de Empresas (ADE)", "Economía", "Finanzas y Contabilidad", "MBA", "Ingeniería Mecánica", 
+    "Ingeniería Eléctrica/Electrónica", "Ingeniería Civil (Caminos)", "Ingeniería Industrial", "Arquitectura", "Enfermería (EIR)", 
+    "Oposiciones a Magisterio", "Oposiciones a Profesorado", "Oposiciones del Estado", "Fisioterapia", "Psicología (PIR)", 
+    "Trabajo Social", "Desarrollo Web Frontend", "Desarrollo Web Backend", "Full Stack Developer", "Desarrollo Multiplataforma (DAM)", 
+    "Desarrollo de Aplicaciones Web (DAW)", "Ingeniería DevOps & Cloud", "Diseño UX/UI", "Product Management", "Marketing Digital", 
+    "Recursos Humanos", "Comercio Internacional", "Logística y Cadena de Suministro", "Banca de Inversión", "Consultoría Estratégica", 
+    "Periodismo y Comunicación", "Bellas Artes y Diseño Gráfico", "Turismo y Gestión Hotelera", "Biología y Biotecnología", "Química", 
+    "Ciencias Ambientales", "Veterinaria", "Ciencias de la Actividad Física (INEF)", "Criminología", "Gastronomía y Artes Culinarias",
+    
+    "FP Dual en Tecnología", "Energías Renovables", "Desarrollador de Juegos Indie", "Gestión de Esports", "Agrotech / Smart Farming", 
+    "Desarrollador FinTech", "Blockchain y Web3", "Creador de Contenido / Streamer", "Emprendedor de Turismo Rural", "Planificador de Smart Cities", 
+    "Analista de Ciberseguridad", "Técnico de Vehículos Eléctricos", "E-commerce y Dropshipping", "Gestión del Agua", "Bootcamp de Desarrollo de Apps", 
+    "Ingeniero de Prompts IA", "Nómada Digital / Freelancer", "Diseñador de Moda Sostenible", "Innovador en HealthTech", "Investigador en Neurotecnología"
+  ],
+  de: [
+    "Informatik (B.Sc./M.Sc.)", "Wirtschaftsinformatik", "Data Science & AI", "Medizin (Staatsexamen)", "Zahnmedizin", 
+    "Pharmazie", "Jura (1. & 2. Staatsexamen)", "Betriebswirtschaftslehre (BWL)", "Volkswirtschaftslehre (VWL)", "MBA", 
+    "Maschinenbau", "Elektrotechnik / Informationstechnik", "Bauingenieurwesen", "Wirtschaftsingenieurwesen", "Architektur", 
+    "Lehramt (Staatsexamen/M.Ed.)", "Pflegewissenschaft", "Fachinformatiker Anwendungsentwicklung", "Fachinformatiker Systemintegration", "Software Engineering", 
+    "Frontend Web Developer", "Backend Web Developer", "Full Stack Web Developer", "Cloud Computing & DevOps", "IT-Security / Cybersecurity", 
+    "Product Management", "Digital Marketing", "Sales & Key Account Management", "Human Resources Management", "Supply Chain Management", 
+    "Finance & Investment Banking", "Management Consulting", "Steuerberater", "Wirtschaftsprüfer", "Psychologie (B.Sc./M.Sc.)", 
+    "Soziale Arbeit (B.A.)", "Journalismus", "Kommunikationswissenschaft", "Grafik Kommunikationsdesign", "Biologie / Biotechnologie", 
+    "Chemie", "Physik", "Mechatronik", "Luft- und Raumfahrttechnik", "Fahrzeugtechnik (Automotive)", 
+    "Erneuerbare Energien", "Agrarwissenschaften", "Veterinärmedizin", "Physiotherapie", "Logistik & Transport",
+    
+    "Duales Studium (Tech/Biz)", "Industry 4.0 Integrator", "Green Hydrogen Tech", "EV Infrastructure Engineer", "Smart Grid Manager", 
+    "Datenschutzbeauftragter (DSGVO)", "UX/UI Bootcamp", "Indie Game Developer", "FinTech Developer", "DeepTech Startup Founder", 
+    "AI Ethics Consultant", "Sustainable Agriculture", "Craft Brewing / Wine Business", "E-commerce Specialist", "Ethical Hacker", 
+    "Sound Engineering", "3D Printing Technician", "HealthTech App Dev", "E-mobility Urban Planner", "Carbon Trader"
+  ],
+  fr: [
+    "Informatique (Licence/Master)", "Licence Pro Métiers de l'Informatique", "Diplôme d'Ingénieur en Informatique", "Data Science & IA", "Cybersécurité", 
+    "Médecine (PASS/L.AS -> ECN)", "Dentaire (Odontologie)", "Pharmacie", "Droit (CRFPA/ENM)", "Expert-Comptable (DCG/DSCG)", 
+    "École de Commerce (PGE)", "MBA", "Ingénierie Mécanique", "Ingénierie Électrique", "Génie Civil", 
+    "Architecture (ENSA)", "Soins Infirmiers (IFSI)", "Enseignement (CRPE / CAPES)", "Concours Fonction Publique", "Développeur Web Frontend", 
+    "Développeur Web Backend", "Full Stack Developer", "Ingénieur Cloud & DevOps", "Product Manager", "Product Owner", 
+    "Marketing Digital", "Ressources Humaines", "Logistique et Supply Chain", "Banque d'Investissement", "Consultant en Management", 
+    "Psychologie", "Travail Social (ASS, ES, CESF)", "Journalisme", "Communication & RP", "Design Graphique", 
+    "Métiers de l'Audiovisuel", "Biologie & Biotechnologie", "Chimie", "Sciences de l'Environnement", "Médecine Vétérinaire (ENV)", 
+    "Kinésithérapie (IFMK)", "Ostéopathie", "Sciences du Sport (STAPS)", "Tourisme et Hôtellerie", "Gastronomie / Arts Culinaires", 
+    "Aéronautique et Espace", "Agronomie & Agroalimentaire", "Génie des Matériaux", "Ingénierie Financière", "Mathématiques Appliquées",
+    
+    "Alternance en Développement", "E-sport & Gaming", "Fashion Tech", "Business du Vin / Parfum", "Green Tech & Climat", 
+    "Technicien Énergie Nucléaire", "Transport Intelligent", "FinTech / InsurTech", "Développeur Web3 / Crypto", "Intégrateur IA", 
+    "Coding Bootcamp", "Créateur de Contenu", "E-commerce / Shopify", "Artisanat / Luxe 2.0", "Innovateur AgriTech", 
+    "Bio-Hacking / Santé", "UX/UI Design", "Bootcamp Cybersécurité", "Opérateur de Drone", "Éco-construction"
+  ],
+  jp: [
+    "情報工学 (理系)", "IT/Web開発 (ブートキャンプ)", "機械・電気工学", "建築・デザイン", "医学部", 
+    "歯学部", "薬学部", "法学部・司法試験", "経済・経営 (文系)", "MBA", 
+    "公認会計士 (JICPA)", "税理士", "国家公務員", "地方公務員", "教員免許", 
+    "看護師", "データサイエンス＆AI", "サイバーセキュリティ専門家", "クラウドアーキテクト (AWS)", "DevOpsエンジニア", 
+    "フロントエンドエンジニア", "バックエンドエンジニア", "フルスタックエンジニア", "ゲーム開発", "UX/UIデザイン", 
+    "プロダクトマネージャー", "デジタルマーケティング", "営業・事業開発", "人事 (HR)", "サプライチェーンマネジメント", 
+    "金融・投資銀行", "経営コンサルティング", "心理学", "ソーシャルワーク", "農学", 
+    "獣医学", "生物医学", "物理・数学", "化学・材料科学", "ロボット工学", 
+    "航空宇宙工学", "自動車工学", "電子工学", "言語学・翻訳", "国際関係", 
+    "メディア・通信", "ジャーナリズム", "グラフィック・アニメデザイン", "映画・放送", "ホスピタリティマネジメント",
+    
+    "任天堂/PS5 ゲームデザイナー", "VTuber / バーチャルアイドル", "漫画家", "アニメ制作進行", "グリーンテックエンジニア", 
+    "介護テックイノベーター", "スマートシティ開発", "FinTechソリューション", "AR/VRメタバース", "eスポーツプロ選手", 
+    "Web3 / ブロックチェーン開発", "酒造 / AgriTech", "越境EC", "フリーランスローカライゼーション", "声優", 
+    "IoT開発者", "地方観光プロモーター", "防災テック", "AI自動化スペシャリスト", "ロボット保守技術者"
+  ],
+  cn: [
+    "计算机科学与技术", "软件工程", "人工智能", "数据科学与大数据技术", "网络安全", 
+    "临床医学", "口腔医学", "药学", "法学与国家司法考试", "经济学", 
+    "金融学", "会计学 (CPA)", "工商管理 (BBA)", "MBA", "机械工程", 
+    "电气工程及其自动化", "土木工程", "航空航天工程", "化学工程", "电子信息工程", 
+    "材料科学与工程", "建筑学", "城乡规划", "国家公务员 (国考)", "省级公务员 (省考)", 
+    "教育/教师资格证", "护理学", "前端开发", "后端开发", "全栈开发", 
+    "移动开发 (鸿蒙/iOS/安卓)", "游戏开发", "云计算 (阿里云/腾讯云)", "DevOps与SRE", "产品经理", 
+    "数字营销与电商", "运营管理", "人力资源", "供应链与物流", "投资银行", 
+    "管理咨询", "心理学", "社会工作", "农业与农学", "兽医学", 
+    "新闻传播学", "播音与主持", "动画与数字媒体艺术", "工业设计", "环境工程",
+    
+    "直播带货/电商主播", "短视频创作者", "新能源与电池工程师", "高铁工程师", "半导体技术员", 
+    "智能制造专家", "跨境电商", "绿色能源审计师", "农村电商创业者", "数字货币/金融科技", 
+    "AI数据标注员", "商业无人机飞手", "元宇宙/XR开发者", "电竞职业选手", "教育科技导师", 
+    "医疗科技系统", "智慧养老科技", "物联网智能家居架构师", "自动驾驶测试工程师", "宠物经济与科技服务"
+  ],
+  kr: [
+    "컴퓨터 공학", "소프트웨어 공학", "인공지능", "데이터 과학", "정보 보안", 
+    "의대 (예과/본과)", "치의학", "약학", "한의학", "로스쿨 (변호사 시험)", 
+    "경영학 (BBA)", "경제학", "재무 및 회계", "공인회계사 (KICPA)", "MBA", 
+    "기계 공학", "전기전자 공학", "토목 및 환경 공학", "화학 공학", "신소재 공학", 
+    "건축학", "5급 공무원 (행정고시)", "7급/9급 공무원", "교원 임용고시", "간호학", 
+    "프론트엔드 개발자", "백엔드 개발자", "풀스택 개발자", "게임 개발자 (넥슨/엔씨/넷마블)", "클라우드 엔지니어 (AWS/GCP)", 
+    "DevOps 엔지니어", "UX/UI 디자이너", "프로덕트 매니저 (PM/PO)", "디지털 마케팅", "이커머스 및 유통 관리", 
+    "인사 관리 (HR)", "공급망 및 물류", "투자 은행 (IB)", "경영 컨설팅", "심리학", 
+    "사회 복지학", "행정학", "국제 관계학", "미디어 및 커뮤니케이션", "저널리즘", 
+    "시각/산업 디자인", "영화 및 연극", "K-Pop/엔터테인먼트 매니지먼트", "항공 운항", "생명공학",
+    
+    "웹툰 작가 / 일러스트레이터", "K-뷰티 화장품 공학", "e스포츠 프로 / 코치", "메타버스 개발자", "2차 전지 기술", 
+    "스마트 팜 개발자", "핀테크 혁신가", "웹소설 작가", "엔터테인먼트 콘텐츠 제작자", "프리랜서 영상 편집자", 
+    "AI 프롬프트 엔지니어", "버추얼 휴먼 크리에이터", "공유 주방 창업가", "블록체인 개발자", "펫 경제 서비스", 
+    "D2C 패션 창업가", "도심 항공 모빌리티 (UAM) 엔지니어", "실버 케어 기술", "디지털 헬스케어", "드론 매핑 전문가"
+  ],
+  ru: [
+    "Информатика и вычислительная техника", "Программная инженерия", "Data Science & AI", "Информационная безопасность", "Системное администрирование", 
+    "Лечебное дело", "Стоматология", "Фармация", "Юриспруденция", "Экономика", 
+    "Финансы и кредит", "Бухгалтерский учет", "Менеджмент", "MBA", "Машиностроение", 
+    "Электроэнергетика", "Строительство", "Архитектура", "Нефтегазовое дело", "Ядерная физика", 
+    "Сестринское дело", "Педагогическое образование", "Frontend Developer", "Backend Developer", "Full Stack Developer", 
+    "Разработчик 1С", "Тестирование ПО (QA)", "DevOps & Сloud", "UX/UI Designer", "Product Management", 
+    "Интернет-маркетинг", "Управление персоналом (HR)", "Логистика", "Инвестиционный банкинг", "Управленческий консалтинг", 
+    "Психология", "Социология", "Журналистика", "Реклама и СО", "Дизайн", 
+    "Биотехнология", "Химия", "Физика", "Математика", "Ветеринария", 
+    "Туризм и гостиничное дело", "Лингвистика и перевод", "Таможенное дело", "ГМУ (Госуправление)", "Авиастроение",
+    
+    "GameDev (Unity/Unreal)", "Профессиональный киберспорт", "Crypto & Blockchain Dev", "Разметчик данных AI", "Создатель контента (Telegram/VK)", 
+    "E-commerce (Wildberries/Ozon)", "Основатель EdTech стартапа", "FinTech Разработчик", "Специалист AgriTech", "Кибербезопасность (Bug Bounty)", 
+    "Оператор/Инженер БПЛА", "Космические технологии", "Инженер арктических технологий", "Специалист по импортозамещению ПО", "Разработчик AR/VR", 
+    "Инди-хакер", "Разработка HealthTech", "Инфраструктура умного города", "Зеленые технологии", "Заказная разработка ПО"
+  ],
+  in: [
+    "कंप्यूटर विज्ञान (बी.टेक)", "सॉफ्टवेयर इंजीनियरिंग", "डेटा साइंस", "मेडिकल (एमबीबीएस/नीट)", "डेंटिस्ट्री (बीडीएस)", 
+    "फार्मेसी (बी.फार्मा)", "कानून (बीए एलएलबी/सीएलएटी)", "एमबीए (कैट/आईआईएम)", "नर्सिंग (बीएससी)", "इन्वेस्टमेंट बैंकिंग एनालिस्ट", 
+    "मैनेजमेंट कंसल्टिंग", "चार्टर्ड अकाउंटेंट (सीए)", "मैकेनिकल इंजीनियरिंग", "इलेक्ट्रिकल इंजीनियरिंग", "सिविल इंजीनियरिंग", 
+    "केमिकल इंजीनियरिंग", "एयरोस्पेस इंजीनियरिंग", "बायोमेडिकल इंजीनियरिंग", "साइबर सुरक्षा विश्लेषक", "क्लाउड कंप्यूटिंग इंजीनियर", 
+    "डेवऑप्स (DevOps) इंजीनियर", "फ्रंटएंड डेवलपर", "बैकएंड डेवलपर", "फुल स्टैक डेवलपर", "मोबाइल ऐप डेवलपर", 
+    "गेम डेवलपमेंट", "आर्टिफिशियल इंटेलिजेंस (AI) इंजीनियर", "मशीन लर्निंग इंजीनियर", "प्रोडक्ट मैनेजमेंट", "प्रोजेक्ट मैनेजमेंट (PMP)", 
+    "मार्केटिंग", "डिजिटल मार्केटिंग", "सेल्स इंजीनियरिंग", "मानव संसाधन (HR)", "सप्लाई चेन मैनेजमेंट", 
+    "वित्त (Finance)", "अर्थशास्त्र (Economics)", "मनोविज्ञान", "सामाजिक कार्य (MSW)", "शिक्षण (B.Ed / CTET)", 
+    "आर्किटेक्चर (B.Arch)", "ग्राफिक डिजाइन (NID/NIFT)", "फिल्म और टेलीविजन प्रोडक्शन", "पत्रकारिता और जनसंचार", "पब्लिक रिलेशंस", 
+    "यूपीएससी (UPSC IAS)", "राज्य लोक सेवा आयोग (State PSC)", "बैंकिंग परीक्षा (IBPS/SBI)", "एसएससी सीजीएल (SSC CGL)", "इंजीनियरिंग सेवाएं (IES)",
+    
+    "यूएक्स/यूआई (UX/UI) डिजाइन", "कोडिंग बूटकैंप", "कमर्शियल ड्रोन पायलट", "एआर/वीआर (AR/VR) डेवलपर", "स्मार्ट सिटी प्लानर", 
+    "जीनोमिक्स तकनीशियन", "स्वच्छ ऊर्जा सलाहकार", "ईस्पोर्ट्स एथलीट", "यूट्यूब क्रिएटर / इन्फ्लुएंसर", "पॉडकास्ट प्रोड्यूसर", 
+    "एग्रीटेक (AgriTech) विशेषज्ञ", "फूडटेक (FoodTech) इनोवेटर", "बायोहैकिंग", "न्यूरोटेक्नोलॉजी रिसर्चर", "3D प्रिंटिंग तकनीशियन", 
+    "कार्बन ऑडिटर", "सोलर पैनल इंस्टॉलेशन इंजीनियर", "ईवी (EV) मैकेनिक और इंफ्रास्ट्रक्चर", "इंडी गेम डेवलपर", "डिजिटल घुमंतू (फ्रीलांसर)"
   ]
 };
