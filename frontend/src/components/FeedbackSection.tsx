@@ -22,20 +22,23 @@ export default function FeedbackSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Sanitize API URL
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
   useEffect(() => {
     let mounted = true;
     const fetchFeedbacks = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/`);
+        const res = await fetch(`${apiBase}/api/feedbacks/`);
         const data = await res.json();
         if (mounted) setFeedbacks(data.feedbacks || []);
       } catch (err) {
-        // Silent catch for normal users
+        // Fail silently
       }
     };
     fetchFeedbacks();
     return () => { mounted = false; };
-  }, []);
+  }, [apiBase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +55,7 @@ export default function FeedbackSection() {
 
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/`, {
+      const res = await fetch(`${apiBase}/api/feedbacks/`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -61,18 +64,15 @@ export default function FeedbackSection() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error();
-      }
+      if (!res.ok) throw new Error();
 
       const savedFeedback = await res.json();
-      
       setFeedbacks([savedFeedback, ...feedbacks]);
       setText("");
       setRating(0);
       setCurrentIndex(0);
     } catch (error: any) {
-      setErrorMsg("Unable to post review at this time. Please try again later.");
+      setErrorMsg("Something went wrong. Please try again later.");
     } finally {
       setSubmitting(false);
     }
@@ -82,26 +82,21 @@ export default function FeedbackSection() {
     if (!id) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/feedbacks/${id}/`, {
+      const res = await fetch(`${apiBase}/api/feedbacks/${id}/`, {
         method: "DELETE",
         headers: {
           "Authorization": token ? `Bearer ${token}` : ""
         }
       });
 
-      if (!res.ok) {
-        throw new Error();
-      }
+      if (!res.ok) throw new Error();
 
       setFeedbacks((prev) => prev.filter((f) => f.id !== id));
-      
       if (currentIndex >= feedbacks.length - 2 && currentIndex > 0) {
         setCurrentIndex(currentIndex - 1);
-      } else if (feedbacks.length <= 1) {
-        setCurrentIndex(0);
       }
     } catch (error: any) {
-      // Silent catch
+      // Fail silently
     }
   };
 
@@ -125,7 +120,7 @@ export default function FeedbackSection() {
       <div className="container mx-auto px-6 max-w-7xl">
         <div className="text-center mb-20 max-w-3xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-display font-medium mb-6 tracking-tight">Hear from our community</h2>
-          <p className="text-gray-400 text-lg sm:text-xl">We value your opinion. Share your experience to help us improve the paths for future students.</p>
+          <p className="text-gray-400 text-lg sm:text-xl">Your journey helps the next generation of students find their path.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-start">
@@ -210,6 +205,7 @@ export default function FeedbackSection() {
             </form>
           </div>
 
+          {/* Carousel */}
           <div className="flex flex-col justify-center h-full">
             {feedbacks.length === 0 ? (
               <div className="text-center p-12 bg-white/[0.02] rounded-3xl border border-white/5">

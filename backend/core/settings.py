@@ -90,9 +90,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Add this at the VERY top of settings.py!
 
+import dj_database_url # Add this at the VERY top of settings.py
+
+# Replace your current DATABASES block with this:
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL')
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True # Neon requires SSL for security
     )
 }
 
