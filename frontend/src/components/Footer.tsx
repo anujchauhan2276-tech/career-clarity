@@ -36,13 +36,13 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Socials</h4>
             <ul className="space-y-3 text-sm text-white/50">
               <li>
-                <a href="https://instagram.com/get_career_clarity" target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white transition">
+                <a href="#" target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white transition">
                   <Instagram className="w-4 h-4" />
                   <span>@get_career_clarity</span>
                 </a>
               </li>
               <li>
-                <a href="https://discord.gg/73mkgzcHPT" target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white transition">
+                <a href="#" target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white transition">
                   <MessageCircle className="w-4 h-4" />
                   <span>career_clarity</span>
                 </a>
