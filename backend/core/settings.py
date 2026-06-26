@@ -8,6 +8,7 @@ import firebase_admin
 from pathlib import Path
 from dotenv import load_dotenv
 from firebase_admin import credentials
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -87,15 +88,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # DATABASE SETTINGS
 # ==========================================
 
+# Add this at the VERY top of settings.py!
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL')
+    )
 }
 
 # ==========================================
