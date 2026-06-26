@@ -343,7 +343,7 @@ export default function RoadmapDetail() {
           >
             
             {/* 2. BALANCED HERO SECTION */}
-            <div className="mb-20">
+            <div className="mb-12">
               <div className="flex flex-wrap items-center gap-3 mb-6">
                 <StatusBadge color="purple">{countryId} Blueprint</StatusBadge>
                 {progressPercent > 0 && <StatusBadge color="green">{progressPercent}% Mastery</StatusBadge>}
@@ -362,28 +362,20 @@ export default function RoadmapDetail() {
 
               <motion.h1 
                 variants={itemVariants}
-                className="text-4xl md:text-6xl font-display font-bold mb-8 tracking-tight leading-tight"
+                className="text-4xl md:text-6xl font-display font-bold mb-6 tracking-tight leading-tight"
               >
                 {data.title}
               </motion.h1>
               
-              <motion.div variants={itemVariants} className="grid md:grid-cols-4 gap-8 items-start">
-                <div className="md:col-span-3">
-                  <p className="text-base md:text-lg text-white/50 leading-relaxed font-normal">
-                    {data.description}
-                  </p>
-                </div>
-                <div className="bg-white/[0.03] border border-white/5 p-5 rounded-2xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Activity className="w-3 h-3 text-white/20" />
-                    <h4 className="text-[9px] font-black uppercase tracking-widest text-white/20">System Estimate</h4>
-                  </div>
-                </div>
+              <motion.div variants={itemVariants}>
+                <p className="text-base md:text-lg text-white/50 leading-relaxed font-normal">
+                  {data.description}
+                </p>
               </motion.div>
             </div>
 
             {/* 3. MODERN TIMELINE */}
-            <div className="mb-32">
+            <div className="mb-20">
               <SectionLabel icon={Target} title="Curriculum Structure" subtitle="Chronological Order" />
 
               <div className="relative ml-2 md:ml-4 border-l border-white/10 space-y-16">
@@ -472,7 +464,7 @@ export default function RoadmapDetail() {
             </div>
 
             {/* 4. BALANCED ANALYSIS GRID */}
-            <div className="grid md:grid-cols-2 gap-5 mb-32">
+            <div className="grid md:grid-cols-2 gap-5 mb-20">
                 <motion.div variants={itemVariants} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner">
                   <div className="flex items-center gap-3 mb-6">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
