@@ -130,13 +130,17 @@ export default function CountryPath() {
 
   const totalResults = filteredTraditional.length + filteredBonus.length + filteredPremium.length;
 
-  const renderCard = (path: string, idx: number, isPremiumRoute: boolean) => {
+  // ✅ FIX: Added `section` param so every card has a globally unique key.
+  // Previously all three sections used `key={idx}` — bonus and traditional
+  // both had keys 0, 1, 2... causing React to reuse the wrong DOM nodes
+  // when re-rendering, producing the visual collision/glitch on scroll.
+  const renderCard = (path: string, idx: number, isPremiumRoute: boolean, section: string) => {
     const isLocked = isPremiumRoute && !hasPremiumAccess;
     const displayTitle = getNativeTitle(path, idx, isPremiumRoute);
 
     return (
       <div
-        key={idx}
+        key={`${section}-${idx}`}
         onClick={() => {
           if (isLocked) {
             navigate("/pricing");
@@ -144,15 +148,6 @@ export default function CountryPath() {
             navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
           }
         }}
-        // ✅ FIX 1: Removed transition-colors — on Android, CSS transitions on
-        // 150+ cards during scroll cause the GPU compositor to promote every
-        // card to its own layer, exhausting VRAM and producing the glitch.
-        // ✅ FIX 2: Removed bg-opacity/semi-transparent backgrounds from cards.
-        // rgba() backgrounds force "alpha compositing" on every card during scroll.
-        // Replaced with solid equivalents that the GPU can skip compositing for.
-        // ✅ FIX 3: Added [contain:layout_style] — this tells the browser each
-        // card is a self-contained paint region, preventing scroll from
-        // invalidating the entire page layout on every frame.
         style={{ contain: 'layout style' }}
         className={`flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer ${
           isTranslating && !translatedTitles[path] ? "opacity-70" : ""
@@ -228,9 +223,7 @@ export default function CountryPath() {
                 <button
                   onClick={() => setLanguage("English")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                    language === "English"
-                      ? "bg-purple-500 text-white"
-                      : "text-gray-400"
+                    language === "English" ? "bg-purple-500 text-white" : "text-gray-400"
                   }`}
                 >
                   English
@@ -238,9 +231,7 @@ export default function CountryPath() {
                 <button
                   onClick={() => setLanguage("Native")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                    language === "Native"
-                      ? "bg-purple-500 text-white"
-                      : "text-gray-400"
+                    language === "Native" ? "bg-purple-500 text-white" : "text-gray-400"
                   }`}
                 >
                   Native
@@ -289,14 +280,12 @@ export default function CountryPath() {
                   {ui.traditional}
                   <div className="h-px bg-white/20 flex-grow ml-4" />
                 </h2>
-                {/* ✅ FIX 4: Added [content-visibility:auto] on the grid container.
-                    The browser will skip rendering off-screen cards entirely,
-                    so scrolling through 150+ cards no longer tanks the GPU. */}
                 <div
                   className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
                   style={{ contentVisibility: 'auto' }}
                 >
-                  {filteredTraditional.map((item) => renderCard(item.path, item.idx, item.isPremium))}
+                  {/* ✅ section="traditional" → keys: traditional-0, traditional-1 ... */}
+                  {filteredTraditional.map((item) => renderCard(item.path, item.idx, item.isPremium, "traditional"))}
                 </div>
               </div>
             )}
@@ -312,7 +301,8 @@ export default function CountryPath() {
                   className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
                   style={{ contentVisibility: 'auto' }}
                 >
-                  {filteredBonus.map((item) => renderCard(item.path, item.idx, item.isPremium))}
+                  {/* ✅ section="bonus" → keys: bonus-50, bonus-51 ... never collides with traditional */}
+                  {filteredBonus.map((item) => renderCard(item.path, item.idx, item.isPremium, "bonus"))}
                 </div>
               </div>
             )}
@@ -328,7 +318,8 @@ export default function CountryPath() {
                   className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
                   style={{ contentVisibility: 'auto' }}
                 >
-                  {filteredPremium.map((item) => renderCard(item.path, item.idx, item.isPremium))}
+                  {/* ✅ section="premium" → keys: premium-100, premium-101 ... */}
+                  {filteredPremium.map((item) => renderCard(item.path, item.idx, item.isPremium, "premium"))}
                 </div>
               </div>
             )}
