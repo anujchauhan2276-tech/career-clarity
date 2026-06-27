@@ -93,7 +93,7 @@ const StatusBadge = ({ children, color = "purple" }: { children: React.ReactNode
 
 /**
  * ============================================================================
- * ANIMATION VARIANTS (Framer Motion)
+ * ANIMATION VARIANTS (Optimized for Mobile Stability)
  * ============================================================================
  */
 
@@ -101,13 +101,17 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: { 
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 10 }, // Reduced distance to prevent "jumping"
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.4, ease: "easeOut" } 
+  }
 };
 
 /**
@@ -283,15 +287,16 @@ export default function RoadmapDetail() {
     : 0;
 
   return (
-    <div className="min-h-[100dvh] bg-[#020202] text-white pt-24 pb-40 selection:bg-purple-500/20 font-sans">
+    <div className="min-h-[100dvh] bg-[#020202] text-white pt-24 pb-40 selection:bg-purple-500/20 font-sans overflow-x-hidden">
       
-      {/* 1. NARROW PROGRESS BAR */}
+      {/* 1. NARROW PROGRESS BAR (Hardware Accelerated) */}
       <AnimatePresence>
         {data && !loading && !error && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5"
+            className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5 pointer-events-none transform-gpu"
+            style={{ transform: 'translateZ(0)' }}
           >
              <motion.div 
               initial={{ width: 0 }}
@@ -327,7 +332,7 @@ export default function RoadmapDetail() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-32 text-center"
            >
-             <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-8">
+             <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-8 mx-auto">
                 <Map className="w-8 h-8 text-white/10" />
              </div>
              <h2 className="text-xl font-display font-bold mb-3 text-white/90 uppercase tracking-tight">Path Under Maintenance</h2>
@@ -340,6 +345,7 @@ export default function RoadmapDetail() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
+            className="will-change-contents"
           >
             
             {/* 2. BALANCED HERO SECTION */}
@@ -349,14 +355,10 @@ export default function RoadmapDetail() {
                 {progressPercent > 0 && <StatusBadge color="green">{progressPercent}% Mastery</StatusBadge>}
                 <div className="h-px bg-white/5 flex-grow"></div>
                 {supportsNative && (
-                   <select 
-                    value={language} 
-                    onChange={(e) => setLanguage(e.target.value as any)} 
-                    className="bg-transparent text-[10px] font-black uppercase text-purple-400 outline-none cursor-pointer hover:text-purple-300"
-                   >
-                     <option value="English">EN</option>
-                     <option value="Native">Native</option>
-                   </select>
+                   <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+                      <button onClick={() => setLanguage("English")} className={`px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all ${language === 'English' ? "bg-white text-black" : "text-white/40 hover:text-white"}`}>EN</button>
+                      <button onClick={() => setLanguage("Native")} className={`px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all ${language === 'Native' ? "bg-purple-600 text-white" : "text-white/40 hover:text-white"}`}>Native</button>
+                   </div>
                 )}
               </div>
 
@@ -368,7 +370,7 @@ export default function RoadmapDetail() {
               </motion.h1>
               
               <motion.div variants={itemVariants}>
-                <p className="text-base md:text-lg text-white/60 leading-relaxed font-normal">
+                <p className="text-base md:text-lg text-white/60 leading-relaxed font-normal max-w-3xl border-l-2 border-white/5 pl-6">
                   {data.description}
                 </p>
               </motion.div>
@@ -385,21 +387,22 @@ export default function RoadmapDetail() {
                     <motion.div 
                       key={i} 
                       variants={itemVariants}
-                      className="relative pl-8 md:pl-12"
+                      viewport={{ once: true, margin: "-50px" }}
+                      className="relative pl-8 md:pl-12 will-change-transform"
                     >
-                      {/* Interaction Node */}
+                      {/* Interaction Node (Fixed offset for mobile) */}
                       <button 
                         onClick={() => toggleStep(step.step)}
-                        className={`absolute -left-[13px] top-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 z-10 ${
+                        className={`absolute -left-[13px] top-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 z-10 transform-gpu ${
                           isCompleted 
-                            ? "bg-green-500 border-green-400 rotate-90" 
+                            ? "bg-green-500 border-green-400 rotate-90 scale-110" 
                             : "bg-[#020202] border-white/10 hover:border-purple-500"
                         }`}
                       >
                         {isCompleted ? <Check className="w-4 h-4 text-white" strokeWidth={5} /> : <div className="w-1 h-1 bg-white/20 rounded-full"></div>}
                       </button>
 
-                      <div className={`transition-all duration-700 ${isCompleted ? "opacity-30 grayscale blur-[0.3px]" : "opacity-100"}`}>
+                      <div className={`transition-all duration-700 transform-gpu ${isCompleted ? "opacity-30 grayscale blur-[0.3px]" : "opacity-100"}`}>
                         <div className="flex flex-wrap items-center gap-3 mb-3">
                           <span className="text-[9px] font-black tracking-widest uppercase text-indigo-400">Stage 0{step.step}</span>
                           <span className="text-[9px] font-medium text-white/20 flex items-center gap-1">
@@ -428,28 +431,29 @@ export default function RoadmapDetail() {
                         {/* Milestone Grids */}
                         <div className="grid md:grid-cols-2 gap-4">
                           {step.milestones.length > 0 && (
-                            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                              <h4 className="text-[8px] font-black uppercase tracking-widest text-blue-300 mb-3 flex items-center gap-2">
+                            <div className="p-4 bg-blue-500/[0.03] border border-blue-500/10 rounded-xl">
+                              <h4 className="text-[8px] font-black uppercase tracking-widest text-blue-400/60 mb-3 flex items-center gap-2">
                                 <Zap className="w-2.5 h-2.5" /> Checkpoints
                               </h4>
                               <ul className="space-y-2.5">
                                 {step.milestones.map((m, mIdx) => (
-                                  <li key={mIdx} className="text-xs text-white/70 flex gap-2 leading-relaxed">
-                                    <span className="text-blue-400 font-bold">•</span> {m}
+                                  <li key={mIdx} className="text-xs text-white/60 flex gap-2 items-start leading-relaxed">
+                                    <span className="text-blue-500/50 mt-1.5 w-1 h-1 rounded-full bg-blue-500 shrink-0" /> {m}
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                               <h4 className="text-[8px] font-black uppercase tracking-widest text-red-300 mb-3 flex items-center gap-2">
+                            <div className="p-4 bg-red-500/[0.03] border border-red-500/10 rounded-xl">
+                               <h4 className="text-[8px] font-black uppercase tracking-widest text-red-400/60 mb-3 flex items-center gap-2">
                                 <ShieldAlert className="w-2.5 h-2.5" /> Avoid
                               </h4>
                               <ul className="space-y-2.5">
                                 {step.antiPatterns.map((a, aIdx) => (
-                                  <li key={aIdx} className="text-xs text-white/60 flex gap-2 leading-relaxed italic">
-                                    <span className="text-red-400 font-black">×</span> {a}
+                                  <li key={aIdx} className="text-xs text-white/60 flex gap-2 items-start leading-relaxed italic">
+                                    <span className="text-red-900/50 font-black shrink-0">×</span>
+                                    <span className="flex-1">{a}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -465,29 +469,29 @@ export default function RoadmapDetail() {
 
             {/* 4. BALANCED ANALYSIS GRID */}
             <div className="grid md:grid-cols-2 gap-5 mb-12">
-                <motion.div variants={itemVariants} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner">
+                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner transform-gpu">
                   <div className="flex items-center gap-3 mb-6">
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
                     <h3 className="text-lg font-bold text-white/90 uppercase tracking-tighter">Strategic Value</h3>
                   </div>
                   <ul className="space-y-4">
                     {data.pros.map((p, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/60 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-green-400 mt-2 shrink-0"></div> {p}
+                      <li key={i} className="flex items-start gap-3 text-white/50 text-sm leading-relaxed">
+                        <div className="w-1 h-1 rounded-full bg-green-500 mt-2 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.3)]"></div> {p}
                       </li>
                     ))}
                   </ul>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner">
+                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner transform-gpu">
                   <div className="flex items-center gap-3 mb-6">
-                    <XCircle className="w-4 h-4 text-red-400" />
+                    <XCircle className="w-4 h-4 text-red-500" />
                     <h3 className="text-lg font-bold text-white/90 uppercase tracking-tighter">Operational Risks</h3>
                   </div>
                   <ul className="space-y-4">
                     {data.cons.map((c, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/60 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-red-400 mt-2 shrink-0"></div> {c}
+                      <li key={i} className="flex items-start gap-3 text-white/50 text-sm leading-relaxed">
+                        <div className="w-1 h-1 rounded-full bg-red-400 mt-2 shrink-0 shadow-[0_0_10px_rgba(239,68,68,0.3)]"></div> {c}
                       </li>
                     ))}
                   </ul>
@@ -496,7 +500,7 @@ export default function RoadmapDetail() {
 
             {/* 5. MACRO STRATEGY */}
             <div className="space-y-6">
-              <motion.div variants={itemVariants} className="p-8 md:p-12 bg-white/[0.02] border border-white/5 rounded-[2rem] relative overflow-hidden">
+              <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-white/[0.02] border border-white/5 rounded-[2rem] relative overflow-hidden transform-gpu">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-32 h-32" />
                 </div>
@@ -508,20 +512,20 @@ export default function RoadmapDetail() {
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="p-8 md:p-12 bg-[#050505] border border-white/5 rounded-[2rem]">
-                <h3 className="text-xl md:text-3xl font-display font-bold mb-8 uppercase tracking-tight">Entry Execution</h3>
+              <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-[#050505] border border-white/5 rounded-[2rem] transform-gpu">
+                <h3 className="text-xl md:text-3xl font-display font-bold mb-10 uppercase tracking-tight">Entry Execution</h3>
                 <div className="space-y-3 mb-10">
                   {data.howTo.map((h, i) => (
                     <div key={i} className="flex items-center gap-5 p-3 hover:bg-white/[0.02] rounded-xl transition-colors group">
                       <span className="text-xl font-display font-black text-white/10 group-hover:text-purple-500/30 transition-colors">0{i+1}</span>
-                      <p className="text-white/60 text-sm md:text-base font-light">{h}</p>
+                      <p className="text-white/60 text-sm md:text-base font-light leading-relaxed">{h}</p>
                     </div>
                   ))}
                 </div>
                 
                 {/* Clean Pro Tip */}
-                <div className="p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex gap-6 items-start">
-                  <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
+                <div className="p-6 bg-yellow-500/[0.03] border border-yellow-500/10 rounded-2xl flex gap-6 items-start shadow-inner transform-gpu">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
                     <Lightbulb className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
@@ -533,7 +537,7 @@ export default function RoadmapDetail() {
 
               {/* 6. VAULT RESOURCES */}
               {data.links.length > 0 && (
-                <motion.div variants={itemVariants} className="p-8 md:p-12 bg-black border border-white/5 rounded-[2rem]">
+                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-black border border-white/5 rounded-[2rem] transform-gpu">
                    <h3 className="text-[9px] font-black tracking-widest uppercase text-white/20 mb-8 text-center">Reference Library</h3>
                    <div className="grid sm:grid-cols-2 gap-4">
                     {data.links.map((l, i) => (
