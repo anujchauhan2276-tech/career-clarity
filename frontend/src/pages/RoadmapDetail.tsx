@@ -92,6 +92,46 @@ const StatusBadge = ({ children, color = "purple" }: { children: React.ReactNode
 };
 
 /**
+ * Segmented language toggle.
+ * Two independent pill buttons — whichever is active gets the solid purple fill.
+ * Built with plain background-color swaps (no animated gradient/blur layer),
+ * which is what was causing the color flicker on mobile GPUs.
+ */
+const LanguageToggle = ({
+  value,
+  nativeLabel,
+  onChange,
+}: {
+  value: "Native" | "English";
+  nativeLabel: string;
+  onChange: (v: "Native" | "English") => void;
+}) => {
+  const baseBtn =
+    "px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors duration-150";
+  const active = "bg-purple-500 text-white";
+  const inactive = "bg-transparent text-white/40 hover:text-white/70";
+
+  return (
+    <div className="flex items-center gap-1 p-1 bg-[#020202] border border-white/10 rounded-lg">
+      <button
+        type="button"
+        onClick={() => onChange("English")}
+        className={`${baseBtn} ${value === "English" ? active : inactive}`}
+      >
+        English
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("Native")}
+        className={`${baseBtn} ${value === "Native" ? active : inactive}`}
+      >
+        {nativeLabel}
+      </button>
+    </div>
+  );
+};
+
+/**
  * ============================================================================
  * ANIMATION VARIANTS (Framer Motion)
  * ============================================================================
@@ -99,7 +139,7 @@ const StatusBadge = ({ children, color = "purple" }: { children: React.ReactNode
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
     transition: { staggerChildren: 0.08, delayChildren: 0.1 }
   }
@@ -278,8 +318,8 @@ export default function RoadmapDetail() {
 
   if (!countryId || !courseId) return <Navigate to="/setup" replace />;
 
-  const progressPercent = data?.roadmapSteps.length 
-    ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100) 
+  const progressPercent = data?.roadmapSteps.length
+    ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100)
     : 0;
 
   // Get native language name based on country
@@ -299,34 +339,42 @@ export default function RoadmapDetail() {
 
   return (
     <div className="min-h-[100dvh] bg-[#020202] text-white pt-20 pb-20 selection:bg-purple-500/20 font-sans">
-      
-      {/* 1. NARROW PROGRESS BAR */}
+
+      {/* 1. NARROW PROGRESS BAR
+          Fixed for mobile: animating `width` forces layout + paint every frame,
+          which is what caused the flicker/glitch on phone GPUs. Animating
+          `transform: scaleX()` instead is compositor-only (no repaint), and
+          dropping the blurred box-shadow glow removes the other expensive
+          repaint trigger. translateZ(0) pins it to its own GPU layer so it
+          doesn't fight with the content scrolling underneath it. */}
       <AnimatePresence mode="wait">
         {data && !loading && !error && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5"
+            style={{ transform: "translateZ(0)" }}
           >
-             <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: progressPercent / 100 }}
               transition={{ duration: 0.6, ease: "circOut" }}
-              className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" 
-             />
+              className="h-full w-full bg-gradient-to-r from-indigo-500 to-pink-500 origin-left"
+              style={{ transform: "translateZ(0)" }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="container mx-auto px-4 md:px-10 max-w-5xl" ref={containerRef}>
-        
+
         {/* Navigation Breadcrumb */}
-        <button 
-          onClick={() => navigate(`/${countryId}`)} 
+        <button
+          onClick={() => navigate(`/${countryId}`)}
           className="flex items-center gap-2 text-white/30 hover:text-white mb-8 transition-all group font-bold text-[10px] tracking-widest uppercase"
         >
-          <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> 
+          <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
 
@@ -347,7 +395,7 @@ export default function RoadmapDetail() {
            </div>
         ) : data ? (
           <div>
-            
+
             {/* 2. HERO SECTION */}
             <div className="mb-8">
               <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -355,21 +403,18 @@ export default function RoadmapDetail() {
                 {progressPercent > 0 && <StatusBadge color="green">{progressPercent}% Done</StatusBadge>}
                 <div className="h-px bg-white/5 flex-grow"></div>
                 {supportsNative && (
-                   <select 
-                    value={language} 
-                    onChange={(e) => setLanguage(e.target.value as "Native" | "English")} 
-                    className="bg-[#020202] text-[10px] font-black uppercase text-purple-400 outline-none cursor-pointer hover:text-purple-300 border border-white/10 rounded-md px-2 py-1"
-                   >
-                     <option value="English">English</option>
-                     <option value="Native">{getNativeLanguageName()}</option>
-                   </select>
+                  <LanguageToggle
+                    value={language}
+                    nativeLabel={getNativeLanguageName()}
+                    onChange={setLanguage}
+                  />
                 )}
               </div>
 
               <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight leading-tight text-white">
                 {data.title}
               </h1>
-              
+
               <p className="text-base md:text-lg text-white/70 leading-relaxed">
                 {data.description}
               </p>
@@ -385,11 +430,11 @@ export default function RoadmapDetail() {
                   return (
                     <div key={i} className="relative pl-8 md:pl-12">
                       {/* Node */}
-                      <button 
+                      <button
                         onClick={() => toggleStep(step.step)}
                         className={`absolute -left-[13px] top-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 z-10 ${
-                          isCompleted 
-                            ? "bg-green-500 border-green-400" 
+                          isCompleted
+                            ? "bg-green-500 border-green-400"
                             : "bg-[#020202] border-white/10 hover:border-purple-500"
                         }`}
                       >
@@ -404,9 +449,9 @@ export default function RoadmapDetail() {
                           </span>
                           <StatusBadge color={step.difficulty.toLowerCase().includes("beginner") ? "green" : "orange"}>{step.difficulty}</StatusBadge>
                         </div>
-                        
+
                         <h3 className="text-xl md:text-2xl font-bold mb-2 tracking-tight text-white">{step.title}</h3>
-                        
+
                         <p className="text-white/60 text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap">
                           {step.desc}
                         </p>
@@ -516,7 +561,7 @@ export default function RoadmapDetail() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Pro Tip */}
                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
                   <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
