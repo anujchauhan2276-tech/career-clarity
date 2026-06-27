@@ -189,7 +189,7 @@ export default function CountryPath() {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-20 flex flex-col items-center justify-start text-white">
+    <div className="min-h-screen bg-black pt-24 pb-2 flex flex-col items-center justify-start text-white">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl" ref={containerRef}>
 
         <button onClick={() => navigate("/setup")} className="flex items-center gap-2 text-white/50 mb-8">
@@ -265,7 +265,7 @@ export default function CountryPath() {
         ) : (
           <>
             {filteredTraditional.length > 0 && (
-              <div className="mb-16">
+              <div className="mb-8">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3">
                   {ui.traditional}
                   <div className="h-px bg-[#222] flex-grow ml-4" />
@@ -277,7 +277,7 @@ export default function CountryPath() {
             )}
 
             {filteredBonus.length > 0 && (
-              <div className="mb-16">
+              <div className="mb-8">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-purple-300">
                   <span className="shrink-0">{ui.bonus}</span>
                   <span className="text-xs sm:text-sm font-normal text-purple-400/50 hidden sm:inline shrink-0">{ui.bonusSub}</span>
@@ -290,7 +290,7 @@ export default function CountryPath() {
             )}
 
             {filteredPremium.length > 0 && (
-              <div className="mb-16">
+              <div className="mb-8">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-yellow-500">
                   <span className="shrink-0">{ui.premium}</span>
                   <span className="text-xs sm:text-sm font-normal text-yellow-600/50 hidden sm:inline shrink-0">{ui.premiumSub}</span>
