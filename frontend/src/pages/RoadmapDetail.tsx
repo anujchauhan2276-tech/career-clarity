@@ -578,24 +578,24 @@ export default function RoadmapDetail() {
                 </div>
 
                 {/* Pro Tip */}
-                <TintBox color="yellow" className="p-4 flex gap-4 items-start">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: TINT.yellow.border }}>
+                <div className="p-4 rounded-xl flex gap-4 items-start" style={{ backgroundColor: TINT.yellow.border }}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: TINT.yellow.bg }}>
                     <Lightbulb className="w-4 h-4" style={{ color: TINT.yellow.icon }} />
                   </div>
                   <div>
                     <h4 className="font-black tracking-widest uppercase text-[8px] mb-1" style={{ color: TINT.yellow.text }}>Pro Tip</h4>
                     <p className="text-sm leading-relaxed italic" style={{ color: TINT.yellow.text }}>"{data.proTip}"</p>
                   </div>
-                </TintBox>
+                </div>
               </TintBox>
 
               {/* 7. RESOURCES */}
               {data.links.length > 0 && (
-                <div className="p-6 md:p-10 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="p-6 md:p-10 bg-[#0A0A0A] border border-white/10 rounded-2xl">
                    <h3 className="text-[9px] font-black tracking-widest uppercase text-white/30 mb-6 text-center">Resources</h3>
                    <div className="grid sm:grid-cols-2 gap-3">
                     {data.links.map((l, i) => (
-                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:border-blue-500/50 transition-all">
+                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-[#151515] border border-white/10 rounded-xl group hover:border-blue-500/50 transition-all">
                         <div className="flex items-center gap-3">
                            <ExternalLink className="w-3.5 h-3.5 text-blue-400/60 group-hover:text-blue-400 transition-colors" />
                            <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{l.name}</span>
