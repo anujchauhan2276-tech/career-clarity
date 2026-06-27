@@ -24,7 +24,6 @@ import {
   Calendar,
   Activity
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
 
@@ -129,25 +128,6 @@ const LanguageToggle = ({
       </button>
     </div>
   );
-};
-
-/**
- * ============================================================================
- * ANIMATION VARIANTS (Framer Motion)
- * ============================================================================
- */
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
 };
 
 /**
@@ -341,31 +321,22 @@ export default function RoadmapDetail() {
     <div className="min-h-[100dvh] bg-[#020202] text-white pt-20 pb-20 selection:bg-purple-500/20 font-sans">
 
       {/* 1. NARROW PROGRESS BAR
-          Fixed for mobile: animating `width` forces layout + paint every frame,
-          which is what caused the flicker/glitch on phone GPUs. Animating
-          `transform: scaleX()` instead is compositor-only (no repaint), and
-          dropping the blurred box-shadow glow removes the other expensive
-          repaint trigger. translateZ(0) pins it to its own GPU layer so it
-          doesn't fight with the content scrolling underneath it. */}
-      <AnimatePresence mode="wait">
-        {data && !loading && !error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5"
-            style={{ transform: "translateZ(0)" }}
-          >
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: progressPercent / 100 }}
-              transition={{ duration: 0.6, ease: "circOut" }}
-              className="h-full w-full bg-gradient-to-r from-indigo-500 to-pink-500 origin-left"
-              style={{ transform: "translateZ(0)" }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          Plain fixed bar, no manual GPU-layer promotion. `position: fixed`
+          already gets its own compositor layer in mobile browsers; stacking
+          `translateZ(0)` on top of that double-promotes it and is what was
+          causing the tearing/ghosting on the content scrolling underneath
+          (visible as duplicated text and horizontal scan lines on Android
+          WebView). `transform: scaleX()` is kept for the fill animation
+          since that part is correct — it's compositor-only and doesn't
+          trigger layout, unlike animating `width`. */}
+      {data && !loading && !error && (
+        <div className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 origin-left transition-transform duration-500 ease-out"
+            style={{ transform: `scaleX(${progressPercent / 100})`, width: "100%" }}
+          />
+        </div>
+      )}
 
       <div className="container mx-auto px-4 md:px-10 max-w-5xl" ref={containerRef}>
 
