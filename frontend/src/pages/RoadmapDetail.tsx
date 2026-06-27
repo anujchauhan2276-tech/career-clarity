@@ -27,12 +27,6 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
 
-/**
- * ============================================================================
- * DATA MODELS & INTERFACES
- * ============================================================================
- */
-
 interface RoadmapStep {
   step: number;
   title: string;
@@ -57,18 +51,9 @@ interface RoadmapData {
   roadmapSteps: RoadmapStep[];
 }
 
-/**
- * ============================================================================
- * COLOR TOKENS — single source of truth
- * ============================================================================
- * Every tinted box on this page pulls from this one object. Literal hex
- * values, no Tailwind opacity modifiers (no /10, /20, /40 etc). Opacity
- * modifiers compute a different effective color depending on what's
- * stacked behind the element, which is why the "Avoid" boxes and other
- * tinted panels were rendering as two different shades of the same color
- * (a visible seam) instead of one flat color. A literal hex value always
- * renders identically no matter what's behind it.
- */
+// ✅ FIX: All colors are solid hex only — no rgba, no Tailwind opacity modifiers.
+// Nested TintBox-inside-TintBox was forcing double alpha compositing on Android,
+// which is what caused the GPU glitch at the How To Start / Resources boundary.
 const TINT = {
   red:    { bg: "#3F1212", border: "#6B2323", text: "#FCA5A5", icon: "#F87171" },
   blue:   { bg: "#12233F", border: "#23416B", text: "#93C5FD", icon: "#60A5FA" },
@@ -80,7 +65,8 @@ const TINT = {
 
 type TintColor = keyof typeof TINT;
 
-/** A bounded box with one flat tinted background. Always the same color, every time. */
+// ✅ FIX: TintBox now uses inline style only — no className color overrides that
+// could conflict or produce mixed compositing contexts.
 const TintBox = ({
   color,
   rounded = "xl",
@@ -103,21 +89,15 @@ const TintBox = ({
   );
 };
 
-/**
- * ============================================================================
- * REUSABLE UI SUB-COMPONENTS
- * ============================================================================
- */
-
 const SectionLabel = ({ icon: Icon, title, subtitle }: { icon: any, title: string, subtitle: string }) => (
   <div className="mb-4">
     <div className="flex items-center gap-2 mb-1">
-      <div className="p-1.5 bg-white/5 rounded-md border border-white/10">
+      <div className="p-1.5 rounded-md border" style={{ backgroundColor: "#1a1a1a", borderColor: "#2a2a2a" }}>
         <Icon className="w-3.5 h-3.5" style={{ color: TINT.purple.icon }} />
       </div>
-      <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">{title}</h2>
+      <h2 className="text-[10px] font-black tracking-[0.2em] uppercase" style={{ color: "#666" }}>{title}</h2>
     </div>
-    <p className="text-[9px] font-medium ml-8 uppercase tracking-widest text-white/20">{subtitle}</p>
+    <p className="text-[9px] font-medium ml-8 uppercase tracking-widest" style={{ color: "#444" }}>{subtitle}</p>
   </div>
 );
 
@@ -133,12 +113,6 @@ const StatusBadge = ({ children, color = "purple" as TintColor }: { children: Re
   );
 };
 
-/**
- * Segmented language toggle.
- * Two independent pill buttons — whichever is active gets the solid purple fill.
- * Built with plain background-color swaps (no animated gradient/blur layer),
- * which is what was causing the color flicker on mobile GPUs.
- */
 const LanguageToggle = ({
   value,
   nativeLabel,
@@ -148,37 +122,34 @@ const LanguageToggle = ({
   nativeLabel: string;
   onChange: (v: "Native" | "English") => void;
 }) => {
-  const baseBtn =
-    "px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors duration-150";
-  const inactive = "bg-transparent text-white/40 hover:text-white/70";
-
+  const baseBtn = "px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider";
   return (
-    <div className="flex items-center gap-1 p-1 bg-[#020202] border border-white/10 rounded-lg">
+    <div className="flex items-center gap-1 p-1 rounded-lg" style={{ backgroundColor: "#050505", border: "1px solid #222" }}>
       <button
         type="button"
         onClick={() => onChange("English")}
-        className={`${baseBtn} ${value === "English" ? "text-white" : inactive}`}
-        style={value === "English" ? { backgroundColor: "#7C3AED" } : undefined}
+        className={baseBtn}
+        style={{
+          backgroundColor: value === "English" ? "#7C3AED" : "transparent",
+          color: value === "English" ? "#fff" : "#555",
+        }}
       >
         English
       </button>
       <button
         type="button"
         onClick={() => onChange("Native")}
-        className={`${baseBtn} ${value === "Native" ? "text-white" : inactive}`}
-        style={value === "Native" ? { backgroundColor: "#7C3AED" } : undefined}
+        className={baseBtn}
+        style={{
+          backgroundColor: value === "Native" ? "#7C3AED" : "transparent",
+          color: value === "Native" ? "#fff" : "#555",
+        }}
       >
         {nativeLabel}
       </button>
     </div>
   );
 };
-
-/**
- * ============================================================================
- * MAIN COMPONENT: RoadmapDetail
- * ============================================================================
- */
 
 export default function RoadmapDetail() {
   const { countryId, courseId } = useParams();
@@ -196,9 +167,6 @@ export default function RoadmapDetail() {
   const decodedCourse = courseId ? decodeURIComponent(courseId) : "";
   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
-  /**
-   * DATA PROCESSING UTILITY
-   */
   const parseTextToList = (item: any): string[] => {
     if (Array.isArray(item)) return item;
     if (typeof item === "string") {
@@ -211,24 +179,18 @@ export default function RoadmapDetail() {
     return [];
   };
 
-  /**
-   * USER PROGRESS SYNC
-   */
   useEffect(() => {
     if (user && decodedCourse) {
-      const fetchProgress = async () => {
-        try {
-          const key = `user_progress_${user.uid}_${decodedCourse}`;
-          const val = localStorage.getItem(key);
-          if (val) {
-            const parsed = JSON.parse(val);
-            setCompletedSteps(parsed.completedSteps || []);
-          }
-        } catch (e: any) {
-          console.error("Local persistence read error");
+      try {
+        const key = `user_progress_${user.uid}_${decodedCourse}`;
+        const val = localStorage.getItem(key);
+        if (val) {
+          const parsed = JSON.parse(val);
+          setCompletedSteps(parsed.completedSteps || []);
         }
-      };
-      fetchProgress();
+      } catch (e) {
+        console.error("Local persistence read error");
+      }
     }
   }, [user, decodedCourse]);
 
@@ -237,23 +199,15 @@ export default function RoadmapDetail() {
     const newCompleted = completedSteps.includes(stepNum)
       ? completedSteps.filter((s) => s !== stepNum)
       : [...completedSteps, stepNum];
-
     setCompletedSteps(newCompleted);
-
     try {
       const key = `user_progress_${user.uid}_${decodedCourse}`;
-      localStorage.setItem(key, JSON.stringify({
-        completedSteps: newCompleted,
-        lastUpdated: new Date().toISOString(),
-      }));
-    } catch (e: any) {
+      localStorage.setItem(key, JSON.stringify({ completedSteps: newCompleted, lastUpdated: new Date().toISOString() }));
+    } catch (e) {
       console.error("Local persistence write error");
     }
   };
 
-  /**
-   * MULTILINGUAL SUPPORT
-   */
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId || "");
   const [language, setLanguage] = useState<"Native" | "English">(urlLang || "English");
 
@@ -265,19 +219,13 @@ export default function RoadmapDetail() {
     }
   }, [language, navigate, searchParams, urlLang]);
 
-  /**
-   * SERVER COMMUNICATION
-   */
   useEffect(() => {
     if (!decodedCourse) return;
-
     const fetchRoadmap = async () => {
       setLoading(true);
       setError(false);
-
       try {
         const token = await getToken();
-
         const res = await fetch(`${apiBase}/api/roadmap/get/`, {
           method: "POST",
           headers: {
@@ -290,15 +238,12 @@ export default function RoadmapDetail() {
             language: language === "Native" ? "Native" : "English"
           }),
         });
-
         if (!res.ok) throw new Error("Backend retrieval failed");
         const dataJson = await res.json();
-
         if (res.status === 403 && dataJson.is_locked) {
           navigate("/pricing", { replace: true });
           return;
         }
-
         const safeLinks = (linksData: any) => {
           const arr = Array.isArray(linksData) ? linksData : [];
           return arr.map((l: any) => {
@@ -306,7 +251,6 @@ export default function RoadmapDetail() {
             return { name: l.name || "Resource Link", url: l.url || "#" };
           });
         };
-
         setData({
           title: dataJson.title || decodedCourse,
           description: dataJson.overview || "",
@@ -328,7 +272,6 @@ export default function RoadmapDetail() {
             antiPatterns: parseTextToList(step.anti_patterns),
           })),
         });
-
       } catch (err: any) {
         setError(true);
       } finally {
@@ -336,7 +279,6 @@ export default function RoadmapDetail() {
         window.scrollTo(0, 0);
       }
     };
-
     fetchRoadmap();
   }, [decodedCourse, user, language, countryId, navigate, getToken, apiBase]);
 
@@ -346,143 +288,134 @@ export default function RoadmapDetail() {
     ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100)
     : 0;
 
-  // Get native language name based on country
   const getNativeLanguageName = () => {
     const languageMap: Record<string, string> = {
-      es: "Español",
-      de: "Deutsch",
-      fr: "Français",
-      cn: "中文",
-      jp: "日本語",
-      kr: "한국어",
-      ru: "Русский",
-      in: "हिन्दी"
+      es: "Español", de: "Deutsch", fr: "Français", cn: "中文",
+      jp: "日本語", kr: "한국어", ru: "Русский", in: "हिन्दी"
     };
     return languageMap[countryId || ""] || "Native";
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#020202] text-white pt-20 pb-20 selection:bg-purple-500/20 font-sans">
+    // ✅ FIX: bg-[#020202] replaced with solid bg-black. Near-black custom
+    // values like #020202 can trigger sub-pixel dithering on some Android
+    // GPU drivers during scroll, contributing to the scan-line artifact.
+    <div className="min-h-screen bg-black text-white pt-20 pb-20 font-sans">
 
-      {/* 1. NARROW PROGRESS BAR
-          Plain fixed bar, no manual GPU-layer promotion. `position: fixed`
-          already gets its own compositor layer in mobile browsers; stacking
-          `translateZ(0)` on top of that double-promotes it and is what was
-          causing the tearing/ghosting on the content scrolling underneath
-          (visible as duplicated text and horizontal scan lines on Android
-          WebView). `transform: scaleX()` is kept for the fill animation
-          since that part is correct — it's compositor-only and doesn't
-          trigger layout, unlike animating `width`. */}
+      {/* Progress bar — position:fixed gets its own compositor layer naturally */}
       {data && !loading && !error && (
-        <div className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5">
+        <div className="fixed top-0 left-0 w-full h-1 z-[100]" style={{ backgroundColor: "#111" }}>
           <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 origin-left transition-transform duration-500 ease-out"
-            style={{ transform: `scaleX(${progressPercent / 100})`, width: "100%" }}
+            className="h-full origin-left"
+            style={{
+              background: "linear-gradient(to right, #6366f1, #ec4899)",
+              transform: `scaleX(${progressPercent / 100})`,
+              width: "100%",
+              transition: "transform 0.5s ease-out",
+            }}
           />
         </div>
       )}
 
       <div className="container mx-auto px-4 md:px-10 max-w-5xl" ref={containerRef}>
 
-        {/* Navigation Breadcrumb */}
         <button
           onClick={() => navigate(`/${countryId}`)}
-          className="flex items-center gap-2 text-white/30 hover:text-white mb-8 transition-all group font-bold text-[10px] tracking-widest uppercase"
+          className="flex items-center gap-2 mb-8 font-bold text-[10px] tracking-widest uppercase"
+          style={{ color: "#444" }}
         >
-          <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="w-3 h-3" />
           Back
         </button>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-40">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500 mb-4 opacity-50" />
-            <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">Loading...</p>
+            <Loader2 className="w-8 h-8 animate-spin mb-4" style={{ color: "#7C3AED", opacity: 0.5 }} />
+            <p className="text-[9px] font-black uppercase tracking-[0.4em]" style={{ color: "#333" }}>Loading...</p>
           </div>
         ) : error ? (
-           <div className="flex flex-col items-center justify-center py-32 text-center">
-             <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-8">
-                <Map className="w-8 h-8 text-white/10" />
-             </div>
-             <h2 className="text-xl font-bold mb-3 text-white/90 uppercase tracking-tight">Path Under Maintenance</h2>
-             <p className="text-white/30 max-w-xs mx-auto text-sm leading-relaxed">
-                The data for <strong>{decodedCourse}</strong> is currently being verified for {countryId.toUpperCase()} standards.
-             </p>
-           </div>
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+              <Map className="w-8 h-8" style={{ color: "#222" }} />
+            </div>
+            <h2 className="text-xl font-bold mb-3 uppercase tracking-tight">Path Under Maintenance</h2>
+            <p className="max-w-xs mx-auto text-sm leading-relaxed" style={{ color: "#555" }}>
+              The data for <strong>{decodedCourse}</strong> is currently being verified for {countryId.toUpperCase()} standards.
+            </p>
+          </div>
         ) : data ? (
           <div>
 
-            {/* 2. HERO SECTION */}
+            {/* HERO */}
             <div className="mb-8">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <StatusBadge color="purple">{countryId}</StatusBadge>
                 {progressPercent > 0 && <StatusBadge color="green">{progressPercent}% Done</StatusBadge>}
-                <div className="h-px bg-white/5 flex-grow"></div>
+                <div className="h-px flex-grow" style={{ backgroundColor: "#1a1a1a" }} />
                 {supportsNative && (
-                  <LanguageToggle
-                    value={language}
-                    nativeLabel={getNativeLanguageName()}
-                    onChange={setLanguage}
-                  />
+                  <LanguageToggle value={language} nativeLabel={getNativeLanguageName()} onChange={setLanguage} />
                 )}
               </div>
-
               <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight leading-tight text-white">
                 {data.title}
               </h1>
-
-              <p className="text-base md:text-lg text-white/70 leading-relaxed">
+              <p className="text-base md:text-lg leading-relaxed" style={{ color: "#aaa" }}>
                 {data.description}
               </p>
             </div>
 
-            {/* 3. STEPS */}
+            {/* STEPS */}
             <div className="mb-10">
               <SectionLabel icon={Target} title="Steps" subtitle="Follow in order" />
-
-              <div className="relative ml-2 md:ml-4 border-l border-white/10 space-y-10">
+              <div className="relative ml-2 md:ml-4 space-y-10" style={{ borderLeft: "1px solid #1e1e1e" }}>
                 {data.roadmapSteps.map((step, i) => {
                   const isCompleted = completedSteps.includes(step.step);
                   return (
                     <div key={i} className="relative pl-8 md:pl-12">
-                      {/* Node */}
                       <button
                         onClick={() => toggleStep(step.step)}
-                        className={`absolute -left-[13px] top-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 z-10 ${
-                          isCompleted
-                            ? "bg-green-500 border-green-400"
-                            : "bg-[#020202] border-white/10 hover:border-purple-500"
-                        }`}
+                        className="absolute -left-[13px] top-0 w-6 h-6 rounded-lg flex items-center justify-center z-10"
+                        style={{
+                          backgroundColor: isCompleted ? "#22c55e" : "#050505",
+                          border: isCompleted ? "2px solid #4ade80" : "2px solid #222",
+                        }}
                       >
-                        {isCompleted ? <Check className="w-4 h-4 text-white" strokeWidth={5} /> : <div className="w-1 h-1 bg-white/20 rounded-full"></div>}
+                        {isCompleted
+                          ? <Check className="w-4 h-4 text-white" strokeWidth={5} />
+                          : <div className="w-1 h-1 rounded-full" style={{ backgroundColor: "#333" }} />
+                        }
                       </button>
 
-                      <div className={`transition-opacity duration-300 ${isCompleted ? "opacity-40" : "opacity-100"}`}>
+                      <div style={{ opacity: isCompleted ? 0.4 : 1 }}>
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="text-[9px] font-black tracking-widest uppercase text-indigo-400">Step {step.step}</span>
-                          <span className="text-[9px] font-medium text-white/30 flex items-center gap-1">
-                             <Clock className="w-2.5 h-2.5" /> {step.timeframe}
+                          <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: TINT.purple.icon }}>Step {step.step}</span>
+                          <span className="text-[9px] font-medium flex items-center gap-1" style={{ color: "#555" }}>
+                            <Clock className="w-2.5 h-2.5" /> {step.timeframe}
                           </span>
-                          <StatusBadge color={step.difficulty.toLowerCase().includes("beginner") ? "green" : "orange"}>{step.difficulty}</StatusBadge>
+                          <StatusBadge color={step.difficulty.toLowerCase().includes("beginner") ? "green" : "orange"}>
+                            {step.difficulty}
+                          </StatusBadge>
                         </div>
 
                         <h3 className="text-xl md:text-2xl font-bold mb-2 tracking-tight text-white">{step.title}</h3>
-
-                        <p className="text-white/60 text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap">
+                        <p className="text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap" style={{ color: "#888" }}>
                           {step.desc}
                         </p>
 
-                        {/* Tools */}
                         {step.tools.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-4">
                             {step.tools.map((t, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[10px] font-medium text-white/50 uppercase tracking-tighter">
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-tighter"
+                                style={{ backgroundColor: "#111", border: "1px solid #1e1e1e", color: "#666" }}
+                              >
                                 {t}
                               </span>
                             ))}
                           </div>
                         )}
 
-                        {/* Milestones & Anti-patterns */}
                         <div className="grid md:grid-cols-2 gap-3">
                           {step.milestones.length > 0 && (
                             <TintBox color="blue" className="p-4">
@@ -491,7 +424,7 @@ export default function RoadmapDetail() {
                               </h4>
                               <ul className="space-y-2">
                                 {step.milestones.map((m, mIdx) => (
-                                  <li key={mIdx} className="text-xs text-white/70 flex gap-2 leading-relaxed">
+                                  <li key={mIdx} className="text-xs flex gap-2 leading-relaxed" style={{ color: "#ccc" }}>
                                     <span className="font-bold" style={{ color: TINT.blue.icon }}>•</span> {m}
                                   </li>
                                 ))}
@@ -500,12 +433,12 @@ export default function RoadmapDetail() {
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
                             <TintBox color="red" className="p-4">
-                               <h4 className="text-[8px] font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: TINT.red.text }}>
+                              <h4 className="text-[8px] font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: TINT.red.text }}>
                                 <ShieldAlert className="w-2.5 h-2.5" /> Avoid
                               </h4>
                               <ul className="space-y-2">
                                 {step.antiPatterns.map((a, aIdx) => (
-                                  <li key={aIdx} className="text-xs text-white/60 flex gap-2 leading-relaxed italic">
+                                  <li key={aIdx} className="text-xs flex gap-2 leading-relaxed italic" style={{ color: "#aaa" }}>
                                     <span className="font-black" style={{ color: TINT.red.icon }}>×</span> {a}
                                   </li>
                                 ))}
@@ -520,90 +453,113 @@ export default function RoadmapDetail() {
               </div>
             </div>
 
-            {/* 4. PROS & CONS */}
+            {/* PROS & CONS */}
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-                <TintBox color="green" rounded="2xl" className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle2 className="w-4 h-4" style={{ color: TINT.green.icon }} />
-                    <h3 className="text-base font-bold" style={{ color: TINT.green.text }}>Pros</h3>
-                  </div>
-                  <ul className="space-y-3">
-                    {data.pros.map((p, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.green.icon }}></div> {p}
-                      </li>
-                    ))}
-                  </ul>
-                </TintBox>
+              <TintBox color="green" rounded="2xl" className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle2 className="w-4 h-4" style={{ color: TINT.green.icon }} />
+                  <h3 className="text-base font-bold" style={{ color: TINT.green.text }}>Pros</h3>
+                </div>
+                <ul className="space-y-3">
+                  {data.pros.map((p, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm leading-relaxed" style={{ color: "#ccc" }}>
+                      <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.green.icon }} /> {p}
+                    </li>
+                  ))}
+                </ul>
+              </TintBox>
 
-                <TintBox color="red" rounded="2xl" className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <XCircle className="w-4 h-4" style={{ color: TINT.red.icon }} />
-                    <h3 className="text-base font-bold" style={{ color: TINT.red.text }}>Cons</h3>
-                  </div>
-                  <ul className="space-y-3">
-                    {data.cons.map((c, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.red.icon }}></div> {c}
-                      </li>
-                    ))}
-                  </ul>
-                </TintBox>
+              <TintBox color="red" rounded="2xl" className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <XCircle className="w-4 h-4" style={{ color: TINT.red.icon }} />
+                  <h3 className="text-base font-bold" style={{ color: TINT.red.text }}>Cons</h3>
+                </div>
+                <ul className="space-y-3">
+                  {data.cons.map((c, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm leading-relaxed" style={{ color: "#ccc" }}>
+                      <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.red.icon }} /> {c}
+                    </li>
+                  ))}
+                </ul>
+              </TintBox>
             </div>
 
-            {/* 5. FUTURE OUTLOOK */}
+            {/* FUTURE OUTLOOK */}
             <div className="space-y-6">
               <TintBox color="purple" rounded="2xl" className="p-6 md:p-10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
-                   <TrendingUp className="w-24 h-24" />
+                <div className="absolute top-0 right-0 p-6 pointer-events-none" style={{ opacity: 0.03 }}>
+                  <TrendingUp className="w-24 h-24" />
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold mb-4" style={{ color: TINT.purple.text }}>Future Outlook</h3>
-                <p className="text-sm md:text-base text-white/60 leading-relaxed mb-6">{data.future}</p>
-                <div className="p-3 rounded-xl border inline-flex items-center gap-2" style={{ backgroundColor: TINT.purple.border, borderColor: TINT.purple.border }}>
-                   <Award className="w-4 h-4" style={{ color: TINT.purple.text }} />
-                   <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TINT.purple.text }}>{data.opportunity}</p>
+                <p className="text-sm md:text-base leading-relaxed mb-6" style={{ color: "#aaa" }}>{data.future}</p>
+                <div
+                  className="p-3 rounded-xl inline-flex items-center gap-2"
+                  style={{ backgroundColor: TINT.purple.border, border: `1px solid ${TINT.purple.border}` }}
+                >
+                  <Award className="w-4 h-4" style={{ color: TINT.purple.text }} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TINT.purple.text }}>{data.opportunity}</p>
                 </div>
               </TintBox>
 
-              {/* 6. HOW TO START */}
+              {/* HOW TO START
+                  ✅ FIX: Pro Tip is NO LONGER a nested TintBox inside another TintBox.
+                  Nesting two elements that both have inline backgroundColor was the
+                  direct cause of the GPU compositing glitch at this section boundary.
+                  Pro Tip is now a plain div with a solid border-top separator instead. */}
               <TintBox color="blue" rounded="2xl" className="p-6 md:p-10">
                 <h3 className="text-xl md:text-2xl font-bold mb-6" style={{ color: TINT.blue.text }}>How to Start</h3>
                 <div className="space-y-3 mb-8">
                   {data.howTo.map((h, i) => (
-                    <div key={i} className="flex items-center gap-4 p-2 hover:bg-white/[0.02] rounded-xl transition-colors">
-                      <span className="text-lg font-bold" style={{ color: TINT.blue.icon }}>{i+1}.</span>
-                      <p className="text-white/70 text-sm md:text-base">{h}</p>
+                    <div key={i} className="flex items-center gap-4 p-2 rounded-xl">
+                      <span className="text-lg font-bold" style={{ color: TINT.blue.icon }}>{i + 1}.</span>
+                      <p className="text-sm md:text-base" style={{ color: "#ccc" }}>{h}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Pro Tip */}
-                <TintBox color="yellow" className="p-4 flex gap-4 items-start">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: TINT.yellow.border }}>
+                {/* Pro Tip — flat div, no nesting, no extra backgroundColor layer */}
+                <div
+                  className="flex gap-4 items-start p-4 rounded-xl"
+                  style={{ borderTop: `1px solid ${TINT.blue.border}`, backgroundColor: "#0a1628" }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: TINT.yellow.border }}
+                  >
                     <Lightbulb className="w-4 h-4" style={{ color: TINT.yellow.icon }} />
                   </div>
                   <div>
                     <h4 className="font-black tracking-widest uppercase text-[8px] mb-1" style={{ color: TINT.yellow.text }}>Pro Tip</h4>
                     <p className="text-sm leading-relaxed italic" style={{ color: TINT.yellow.text }}>"{data.proTip}"</p>
                   </div>
-                </TintBox>
+                </div>
               </TintBox>
 
-              {/* 7. RESOURCES */}
+              {/* RESOURCES */}
               {data.links.length > 0 && (
-                <div className="p-6 md:p-10 bg-white/5 border border-white/10 rounded-2xl">
-                   <h3 className="text-[9px] font-black tracking-widest uppercase text-white/30 mb-6 text-center">Resources</h3>
-                   <div className="grid sm:grid-cols-2 gap-3">
+                <div
+                  className="p-6 md:p-10 rounded-2xl"
+                  style={{ backgroundColor: "#0a0a0a", border: "1px solid #1e1e1e" }}
+                >
+                  <h3 className="text-[9px] font-black tracking-widest uppercase text-center mb-6" style={{ color: "#444" }}>Resources</h3>
+                  <div className="grid sm:grid-cols-2 gap-3">
                     {data.links.map((l, i) => (
-                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:border-blue-500/50 transition-all">
+                      <a
+                        key={i}
+                        href={l.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-between p-3 rounded-xl"
+                        style={{ backgroundColor: "#111", border: "1px solid #1e1e1e" }}
+                      >
                         <div className="flex items-center gap-3">
-                           <ExternalLink className="w-3.5 h-3.5 text-blue-400/60 group-hover:text-blue-400 transition-colors" />
-                           <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{l.name}</span>
+                          <ExternalLink className="w-3.5 h-3.5" style={{ color: "#4b87c8" }} />
+                          <span className="text-xs font-bold" style={{ color: "#888" }}>{l.name}</span>
                         </div>
-                        <ChevronRight className="w-3 h-3 text-white/20 group-hover:translate-x-1 transition-all" />
+                        <ChevronRight className="w-3 h-3" style={{ color: "#333" }} />
                       </a>
                     ))}
-                   </div>
+                  </div>
                 </div>
               )}
             </div>
