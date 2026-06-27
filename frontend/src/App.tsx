@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ScrollToTop from "./components/ScrollToTop";
@@ -19,18 +19,31 @@ import CookieBanner from "./components/CookieBanner";
 import LoginPage from "./pages/LoginPage";
 import Register from "./pages/Register";
 
+// ✅ FIX: Guard that validates countryId BEFORE CountryPath ever mounts.
+// Previously, /:countryId would match paths like /pricing or /login on
+// re-renders triggered by auth state changes (e.g. admin login), causing
+// CountryPath to mount with an invalid countryId and collide with the
+// correct page — producing the glitch you saw.
+const VALID_COUNTRIES = ["us", "in", "jp", "cn", "kr", "uk", "de", "es", "fr", "ru"];
+
+function CountryPathGuard() {
+  const { countryId } = useParams();
+  if (!countryId || !VALID_COUNTRIES.includes(countryId)) {
+    return <Navigate to="/setup" replace />;
+  }
+  return <CountryPath />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        {/* Smart scroll restorer */}
         <ScrollToTop />
-        
-        {/* FIX: Changed min-h-[100dvh] to min-h-screen to stop mobile layout thrashing! */}
         <div className="bg-black text-white font-sans selection:bg-purple-500/30 min-h-screen w-full relative">
           <Header />
           <main>
             <Routes>
+              {/* ✅ All named routes come first so they are never shadowed by /:countryId */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<Register />} />
@@ -42,7 +55,9 @@ export default function App() {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/cookies" element={<CookiePolicy />} />
-              <Route path="/:countryId" element={<CountryPath />} />
+
+              {/* ✅ Dynamic country routes — guarded so only valid country codes mount CountryPath */}
+              <Route path="/:countryId" element={<CountryPathGuard />} />
               <Route path="/:countryId/roadmap/:courseId" element={<RoadmapDetail />} />
             </Routes>
           </main>
