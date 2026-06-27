@@ -26,13 +26,38 @@ const getLangCode = (country: string) => {
   return map[country] || 'en';
 };
 
+// Completely static card styles — no hover, no transition, no rgba.
+// All three sections use the same renderCard; section prefix makes keys unique.
+const CARD_STYLES = {
+  traditional: {
+    wrapper: "border-[#2a2a2a] bg-[#111111]",
+    title: "text-white",
+    chevron: "text-[#333333]",
+  },
+  bonus: {
+    wrapper: "border-[#2d1f4a] bg-[#0e0818]",
+    title: "text-purple-200",
+    chevron: "text-[#3d2060]",
+  },
+  premiumLocked: {
+    wrapper: "border-[#3a2800] bg-[#0d0800]",
+    title: "text-yellow-400",
+    chevron: "text-[#3a2800]",
+  },
+  premiumUnlocked: {
+    wrapper: "border-[#7a5200] bg-[#1a1200]",
+    title: "text-yellow-400",
+    chevron: "text-[#7a5200]",
+  },
+};
+
 export default function CountryPath() {
   const { countryId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ✅ All hooks at the top, before any early return
+  // ALL hooks before any early return
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState<"Native" | "English">("English");
   const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({});
@@ -47,7 +72,7 @@ export default function CountryPath() {
   const traditionalPaths = freePaths.slice(0, 50);
   const bonusPaths = freePaths.slice(50);
   const hasPremiumAccess = user?.email?.toLowerCase() === "anujchauhan2276@gmail.com";
-  const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT['en'];
+  const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT["en"];
 
   const getNativeTitle = (path: string, idx: number, isPremiumRoute: boolean) => {
     if (!supportsNative || language === "English") return path;
@@ -56,133 +81,108 @@ export default function CountryPath() {
   };
 
   useEffect(() => {
-    if (language === 'English' || !supportsNative) {
+    if (language === "English" || !supportsNative) {
       setTranslatedTitles({});
       return;
     }
-
     const targetLang = getLangCode(countryId);
     const cacheKey = `translations_${countryId}_${targetLang}`;
     const cached = localStorage.getItem(cacheKey);
-
     if (cached) {
-      const parsedCache = JSON.parse(cached);
-      if (Object.keys(parsedCache).length > 50) {
-        setTranslatedTitles(parsedCache);
-        return;
-      }
+      const parsed = JSON.parse(cached);
+      if (Object.keys(parsed).length > 50) { setTranslatedTitles(parsed); return; }
     }
-
     const translateAll = async () => {
       setIsTranslating(true);
       const allToTranslate = [...traditionalPaths, ...bonusPaths, ...premiumRoadmaps];
       const dict: Record<string, string> = {};
       let successCount = 0;
-
       try {
         const chunkSize = 15;
         for (let i = 0; i < allToTranslate.length; i += chunkSize) {
           const chunk = allToTranslate.slice(i, i + chunkSize);
-          const text = chunk.join("\n");
           try {
-            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
-            if (!res.ok) throw new Error("Translation blocked.");
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(chunk.join("\n"))}`);
+            if (!res.ok) throw new Error("blocked");
             const data = await res.json();
-            const translatedText = data[0].map((item: any) => item[0] || "").join("");
-            const translatedArray = translatedText.split("\n").map((s: string) => s.trim()).filter(Boolean);
-            chunk.forEach((eng, idx) => { dict[eng] = translatedArray[idx] || eng; });
+            const translated = data[0].map((item: any) => item[0] || "").join("").split("\n").map((s: string) => s.trim()).filter(Boolean);
+            chunk.forEach((eng, i) => { dict[eng] = translated[i] || eng; });
             successCount++;
-          } catch (chunkErr) {
-            chunk.forEach(eng => dict[eng] = eng);
-          }
-          await new Promise(resolve => setTimeout(resolve, 300));
+          } catch { chunk.forEach(eng => { dict[eng] = eng; }); }
+          await new Promise(r => setTimeout(r, 300));
           setTranslatedTitles({ ...dict });
         }
         if (successCount > 0) localStorage.setItem(cacheKey, JSON.stringify(dict));
-      } catch (e) {
-        console.error("Auto-translation critically failed", e);
-      } finally {
-        setIsTranslating(false);
-      }
+      } catch (e) { console.error("Translation failed", e); }
+      finally { setIsTranslating(false); }
     };
-
     translateAll();
   }, [language, countryId]);
 
   const query = searchQuery.toLowerCase().trim();
-  const filterPath = (path: string, idx: number, isPremiumRoute: boolean) => {
-    const engTitle = path.toLowerCase();
-    const translatedTitle = getNativeTitle(path, idx, isPremiumRoute).toLowerCase();
-    return engTitle.includes(query) || translatedTitle.includes(query);
-  };
 
   const filteredTraditional = traditionalPaths
-    .map((path, idx) => ({ path, idx, isPremium: false }))
-    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+    .map((path, idx) => ({ path, idx }))
+    .filter(({ path, idx }) => {
+      const native = getNativeTitle(path, idx, false).toLowerCase();
+      return path.toLowerCase().includes(query) || native.includes(query);
+    });
 
   const filteredBonus = bonusPaths
-    .map((path, idx) => ({ path, idx: idx + 50, isPremium: false }))
-    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+    .map((path, idx) => ({ path, idx: idx + 50 }))
+    .filter(({ path, idx }) => {
+      const native = getNativeTitle(path, idx, false).toLowerCase();
+      return path.toLowerCase().includes(query) || native.includes(query);
+    });
 
   const filteredPremium = premiumRoadmaps
-    .map((path, idx) => ({ path, idx: idx + 100, isPremium: true }))
-    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+    .map((path, idx) => ({ path, idx: idx + 100 }))
+    .filter(({ path, idx }) => {
+      const native = getNativeTitle(path, idx, true).toLowerCase();
+      return path.toLowerCase().includes(query) || native.includes(query);
+    });
 
   const totalResults = filteredTraditional.length + filteredBonus.length + filteredPremium.length;
 
-  // ✅ FIX: Added `section` param so every card has a globally unique key.
-  // Previously all three sections used `key={idx}` — bonus and traditional
-  // both had keys 0, 1, 2... causing React to reuse the wrong DOM nodes
-  // when re-rendering, producing the visual collision/glitch on scroll.
-  const renderCard = (path: string, idx: number, isPremiumRoute: boolean, section: string) => {
+  const renderCard = (
+    path: string,
+    idx: number,
+    isPremiumRoute: boolean,
+    section: "traditional" | "bonus" | "premium"
+  ) => {
     const isLocked = isPremiumRoute && !hasPremiumAccess;
     const displayTitle = getNativeTitle(path, idx, isPremiumRoute);
+
+    let style = CARD_STYLES.traditional;
+    if (section === "bonus") style = CARD_STYLES.bonus;
+    if (section === "premium") style = isLocked ? CARD_STYLES.premiumLocked : CARD_STYLES.premiumUnlocked;
 
     return (
       <div
         key={`${section}-${idx}`}
-        onClick={() => {
-          if (isLocked) {
-            navigate("/pricing");
-          } else {
-            navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
-          }
-        }}
-        style={{ contain: 'layout style' }}
-        className={`flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer ${
-          isTranslating && !translatedTitles[path] ? "opacity-70" : ""
-        } ${
-          isPremiumRoute
-            ? hasPremiumAccess
-              ? "border-yellow-600 bg-[#1a1200] active:bg-[#221800]"
-              : "border-yellow-900 bg-black active:bg-[#1a1200]"
-            : "border-white/10 bg-[#111111] active:bg-[#1a1a1a]"
-        }`}
+        onClick={() => isLocked ? navigate("/pricing") : navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`)}
+        // No hover, no transition, no rgba — solid colors only.
+        // contain:strict tells browser this card is fully isolated;
+        // no layout/paint outside it can be affected by scrolling past it.
+        style={{ contain: "strict", height: "120px" }}
+        className={`flex flex-col justify-between p-4 rounded-xl border cursor-pointer ${style.wrapper} ${isTranslating && !translatedTitles[path] ? "opacity-60" : ""}`}
       >
-        <div className="flex items-start justify-between gap-1 sm:gap-2">
-          <span className={`font-semibold text-sm sm:text-base leading-snug break-words ${
-            isPremiumRoute ? "text-yellow-400" : "text-white/90"
-          }`}>
+        <div className="flex items-start justify-between gap-2">
+          <span className={`font-semibold text-sm leading-snug break-words line-clamp-3 ${style.title}`}>
             {displayTitle}
           </span>
           {isPremiumRoute && (
             isLocked
-              ? <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-700 shrink-0 mt-1" />
-              : <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-1" />
+              ? <Lock className="w-4 h-4 text-yellow-800 shrink-0 mt-0.5" />
+              : <Unlock className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
           )}
         </div>
-
-        <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3 min-h-[24px]">
-          {isLocked ? (
-            <span className="text-[10px] sm:text-xs font-bold text-yellow-700 uppercase tracking-wider mr-auto">
-              {ui.premiumBadge}
-            </span>
-          ) : (
-            <div className="mr-auto" />
-          )}
-          <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 ${
-            isPremiumRoute ? "text-yellow-700" : "text-white/20"
-          }`} />
+        <div className="flex items-center justify-between mt-2">
+          {isLocked
+            ? <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider">{ui.premiumBadge}</span>
+            : <span />
+          }
+          <ChevronRight className={`w-4 h-4 ml-auto ${style.chevron}`} />
         </div>
       </div>
     );
@@ -192,22 +192,19 @@ export default function CountryPath() {
     <div className="min-h-screen bg-black pt-24 pb-20 flex flex-col items-center justify-start text-white">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl" ref={containerRef}>
 
-        <button
-          onClick={() => navigate('/setup')}
-          className="flex items-center gap-2 text-white/50 hover:text-white mb-8 transition-colors"
-        >
+        <button onClick={() => navigate("/setup")} className="flex items-center gap-2 text-white/50 mb-8">
           <ArrowLeft className="w-4 h-4" />
           {ui.back}
         </button>
 
         <div className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold tracking-tight mb-6">
-            {language === 'Native' && countryId !== 'en' ? '' : ui.title}{" "}
+            {language === "Native" && countryId !== "en" ? "" : ui.title}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">
               {COUNTRIES[countryId]}
             </span>
-            {language === 'Native' && countryId === 'jp' && 'の経路'}
-            {language === 'Native' && ['kr', 'cn', 'in'].includes(countryId) && ui.title}
+            {language === "Native" && countryId === "jp" && "の経路"}
+            {language === "Native" && ["kr", "cn", "in"].includes(countryId) && ui.title}
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
             {ui.subtitle}
@@ -219,20 +216,16 @@ export default function CountryPath() {
                 {isTranslating && <Loader2 className="w-4 h-4 animate-spin text-purple-500" />}
                 {ui.lang}
               </span>
-              <div className="flex bg-[#111] p-1 rounded-xl border border-white/10">
+              <div className="flex bg-[#111] p-1 rounded-xl border border-[#222]">
                 <button
                   onClick={() => setLanguage("English")}
-                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                    language === "English" ? "bg-purple-500 text-white" : "text-gray-400"
-                  }`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold ${language === "English" ? "bg-purple-500 text-white" : "text-gray-400"}`}
                 >
                   English
                 </button>
                 <button
                   onClick={() => setLanguage("Native")}
-                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                    language === "Native" ? "bg-purple-500 text-white" : "text-gray-400"
-                  }`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold ${language === "Native" ? "bg-purple-500 text-white" : "text-gray-400"}`}
                 >
                   Native
                 </button>
@@ -243,20 +236,17 @@ export default function CountryPath() {
 
         <div className="max-w-2xl mx-auto mb-16 relative mt-8">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="w-5 h-5 text-gray-400" />
+            <Search className="w-5 h-5 text-gray-500" />
           </div>
           <input
             type="text"
-            className="w-full bg-[#111] border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base sm:text-lg"
+            className="w-full bg-[#111] border border-[#222] rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 text-base"
             placeholder={`${ui.search} ${COUNTRIES[countryId]}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500"
-            >
+            <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500">
               <XCircle className="w-5 h-5" />
             </button>
           )}
@@ -265,10 +255,10 @@ export default function CountryPath() {
         {totalResults === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 bg-[#111] rounded-full flex items-center justify-center mb-6">
-              <Search className="w-10 h-10 text-gray-500" />
+              <Search className="w-10 h-10 text-gray-600" />
             </div>
             <h2 className="text-2xl font-bold mb-2">{ui.noResults}</h2>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <p className="text-gray-500 max-w-md mx-auto">
               {ui.noResultsDesc} "<span className="text-white">{searchQuery}</span>".
             </p>
           </div>
@@ -278,14 +268,10 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3">
                   {ui.traditional}
-                  <div className="h-px bg-white/20 flex-grow ml-4" />
+                  <div className="h-px bg-[#222] flex-grow ml-4" />
                 </h2>
-                <div
-                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
-                  style={{ contentVisibility: 'auto' }}
-                >
-                  {/* ✅ section="traditional" → keys: traditional-0, traditional-1 ... */}
-                  {filteredTraditional.map((item) => renderCard(item.path, item.idx, item.isPremium, "traditional"))}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4" style={{ contentVisibility: "auto" }}>
+                  {filteredTraditional.map((item) => renderCard(item.path, item.idx, false, "traditional"))}
                 </div>
               </div>
             )}
@@ -294,15 +280,11 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-purple-300">
                   <span className="shrink-0">{ui.bonus}</span>
-                  <span className="text-xs sm:text-sm font-normal text-purple-300/60 hidden sm:inline shrink-0">{ui.bonusSub}</span>
-                  <div className="h-px bg-purple-500/30 flex-grow ml-2 sm:ml-4" />
+                  <span className="text-xs sm:text-sm font-normal text-purple-400/50 hidden sm:inline shrink-0">{ui.bonusSub}</span>
+                  <div className="h-px bg-[#2d1f4a] flex-grow ml-2 sm:ml-4" />
                 </h2>
-                <div
-                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
-                  style={{ contentVisibility: 'auto' }}
-                >
-                  {/* ✅ section="bonus" → keys: bonus-50, bonus-51 ... never collides with traditional */}
-                  {filteredBonus.map((item) => renderCard(item.path, item.idx, item.isPremium, "bonus"))}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4" style={{ contentVisibility: "auto" }}>
+                  {filteredBonus.map((item) => renderCard(item.path, item.idx, false, "bonus"))}
                 </div>
               </div>
             )}
@@ -311,15 +293,11 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-yellow-500">
                   <span className="shrink-0">{ui.premium}</span>
-                  <span className="text-xs sm:text-sm font-normal text-yellow-500/60 hidden sm:inline shrink-0">{ui.premiumSub}</span>
-                  <div className="h-px bg-yellow-500/30 flex-grow ml-2 sm:ml-4" />
+                  <span className="text-xs sm:text-sm font-normal text-yellow-600/50 hidden sm:inline shrink-0">{ui.premiumSub}</span>
+                  <div className="h-px bg-[#3a2800] flex-grow ml-2 sm:ml-4" />
                 </h2>
-                <div
-                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
-                  style={{ contentVisibility: 'auto' }}
-                >
-                  {/* ✅ section="premium" → keys: premium-100, premium-101 ... */}
-                  {filteredPremium.map((item) => renderCard(item.path, item.idx, item.isPremium, "premium"))}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4" style={{ contentVisibility: "auto" }}>
+                  {filteredPremium.map((item) => renderCard(item.path, item.idx, true, "premium"))}
                 </div>
               </div>
             )}
