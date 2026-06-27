@@ -282,6 +282,21 @@ export default function RoadmapDetail() {
     ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100) 
     : 0;
 
+  // Get native language name based on country
+  const getNativeLanguageName = () => {
+    const languageMap: Record<string, string> = {
+      es: "Español",
+      de: "Deutsch",
+      fr: "Français",
+      cn: "中文",
+      jp: "日本語",
+      kr: "한국어",
+      ru: "Русский",
+      in: "हिन्दी"
+    };
+    return languageMap[countryId || ""] || "Native";
+  };
+
   return (
     <div className="min-h-[100dvh] bg-[#020202] text-white pt-20 pb-20 selection:bg-purple-500/20 font-sans">
       
@@ -342,11 +357,11 @@ export default function RoadmapDetail() {
                 {supportsNative && (
                    <select 
                     value={language} 
-                    onChange={(e) => setLanguage(e.target.value as any)} 
-                    className="bg-transparent text-[10px] font-black uppercase text-purple-400 outline-none cursor-pointer hover:text-purple-300"
+                    onChange={(e) => setLanguage(e.target.value as "Native" | "English")} 
+                    className="bg-[#020202] text-[10px] font-black uppercase text-purple-400 outline-none cursor-pointer hover:text-purple-300 border border-white/10 rounded-md px-2 py-1"
                    >
-                     <option value="English">EN</option>
-                     <option value="Native">Native</option>
+                     <option value="English">English</option>
+                     <option value="Native">{getNativeLanguageName()}</option>
                    </select>
                 )}
               </div>
@@ -447,7 +462,7 @@ export default function RoadmapDetail() {
 
             {/* 4. PROS & CONS */}
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-                <div className="p-6 bg-green-500/5 border border-green-500/20 rounded-2xl">
+                <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                     <h3 className="text-base font-bold text-green-300">Pros</h3>
@@ -461,7 +476,7 @@ export default function RoadmapDetail() {
                   </ul>
                 </div>
 
-                <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+                <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <XCircle className="w-4 h-4 text-red-400" />
                     <h3 className="text-base font-bold text-red-300">Cons</h3>
@@ -478,7 +493,7 @@ export default function RoadmapDetail() {
 
             {/* 5. FUTURE OUTLOOK */}
             <div className="space-y-6">
-              <div className="p-6 md:p-10 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden">
+              <div className="p-6 md:p-10 bg-purple-500/10 border border-purple-500/30 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-24 h-24" />
                 </div>
@@ -491,7 +506,7 @@ export default function RoadmapDetail() {
               </div>
 
               {/* 6. HOW TO START */}
-              <div className="p-6 md:p-10 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+              <div className="p-6 md:p-10 bg-blue-500/10 border border-blue-500/30 rounded-2xl">
                 <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-300">How to Start</h3>
                 <div className="space-y-3 mb-8">
                   {data.howTo.map((h, i) => (
