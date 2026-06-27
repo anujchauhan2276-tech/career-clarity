@@ -18,12 +18,8 @@ import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
 import LoginPage from "./pages/LoginPage";
 import Register from "./pages/Register";
+import { useAuth } from "./contexts/AuthContext";
 
-// ✅ FIX: Guard that validates countryId BEFORE CountryPath ever mounts.
-// Previously, /:countryId would match paths like /pricing or /login on
-// re-renders triggered by auth state changes (e.g. admin login), causing
-// CountryPath to mount with an invalid countryId and collide with the
-// correct page — producing the glitch you saw.
 const VALID_COUNTRIES = ["us", "in", "jp", "cn", "kr", "uk", "de", "es", "fr", "ru"];
 
 function CountryPathGuard() {
@@ -34,36 +30,51 @@ function CountryPathGuard() {
   return <CountryPath />;
 }
 
+// ✅ THE REAL FIX: This inner component reads authLoading and renders
+// nothing until Firebase has fully resolved who the user is.
+// Without this, the app renders with user=null first, then re-renders
+// with user=adminUser — causing both UIs to briefly collide (the glitch).
+function AppContent() {
+  const { authLoading } = useAuth();
+
+  // Block ALL rendering until Firebase auth is settled.
+  // This is just a black screen for ~200-400ms on first load — imperceptible.
+  if (authLoading) {
+    return <div className="min-h-screen bg-black" />;
+  }
+
+  return (
+    <div className="bg-black text-white font-sans selection:bg-purple-500/30 min-h-screen w-full relative">
+      <Header />
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/learn-more" element={<LearnMore />} />
+          <Route path="/process" element={<Process />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/:countryId" element={<CountryPathGuard />} />
+          <Route path="/:countryId/roadmap/:courseId" element={<RoadmapDetail />} />
+        </Routes>
+      </main>
+      <Footer />
+      <CookieBanner />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
         <ScrollToTop />
-        <div className="bg-black text-white font-sans selection:bg-purple-500/30 min-h-screen w-full relative">
-          <Header />
-          <main>
-            <Routes>
-              {/* ✅ All named routes come first so they are never shadowed by /:countryId */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/learn-more" element={<LearnMore />} />
-              <Route path="/process" element={<Process />} />
-              <Route path="/setup" element={<Setup />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/cookies" element={<CookiePolicy />} />
-
-              {/* ✅ Dynamic country routes — guarded so only valid country codes mount CountryPath */}
-              <Route path="/:countryId" element={<CountryPathGuard />} />
-              <Route path="/:countryId/roadmap/:courseId" element={<RoadmapDetail />} />
-            </Routes>
-          </main>
-          <Footer />
-          <CookieBanner />
-        </div>
+        <AppContent />
       </ThemeProvider>
     </AuthProvider>
   );
