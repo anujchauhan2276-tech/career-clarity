@@ -351,11 +351,11 @@ export default function RoadmapDetail() {
                 )}
               </div>
 
-              <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight leading-tight">
+              <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight leading-tight text-white">
                 {data.title}
               </h1>
               
-              <p className="text-base md:text-lg text-white/60 leading-relaxed">
+              <p className="text-base md:text-lg text-white/70 leading-relaxed">
                 {data.description}
               </p>
             </div>
@@ -384,13 +384,13 @@ export default function RoadmapDetail() {
                       <div className={`transition-opacity duration-300 ${isCompleted ? "opacity-40" : "opacity-100"}`}>
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="text-[9px] font-black tracking-widest uppercase text-indigo-400">Step {step.step}</span>
-                          <span className="text-[9px] font-medium text-white/20 flex items-center gap-1">
+                          <span className="text-[9px] font-medium text-white/30 flex items-center gap-1">
                              <Clock className="w-2.5 h-2.5" /> {step.timeframe}
                           </span>
                           <StatusBadge color={step.difficulty.toLowerCase().includes("beginner") ? "green" : "orange"}>{step.difficulty}</StatusBadge>
                         </div>
                         
-                        <h3 className="text-xl md:text-2xl font-bold mb-2 tracking-tight text-white/90">{step.title}</h3>
+                        <h3 className="text-xl md:text-2xl font-bold mb-2 tracking-tight text-white">{step.title}</h3>
                         
                         <p className="text-white/60 text-sm md:text-base leading-relaxed mb-4 whitespace-pre-wrap">
                           {step.desc}
@@ -400,7 +400,7 @@ export default function RoadmapDetail() {
                         {step.tools.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-4">
                             {step.tools.map((t, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[10px] font-medium text-white/40 uppercase tracking-tighter">
+                              <span key={idx} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[10px] font-medium text-white/50 uppercase tracking-tighter">
                                 {t}
                               </span>
                             ))}
@@ -447,28 +447,28 @@ export default function RoadmapDetail() {
 
             {/* 4. PROS & CONS */}
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-                <div className="p-6 bg-[#0A0A0A] border border-white/5 rounded-2xl">
+                <div className="p-6 bg-green-500/5 border border-green-500/20 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    <h3 className="text-base font-bold text-white/90">Pros</h3>
+                    <h3 className="text-base font-bold text-green-300">Pros</h3>
                   </div>
                   <ul className="space-y-3">
                     {data.pros.map((p, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/60 text-sm leading-relaxed">
+                      <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
                         <div className="w-1 h-1 rounded-full bg-green-400 mt-1.5 shrink-0"></div> {p}
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="p-6 bg-[#0A0A0A] border border-white/5 rounded-2xl">
+                <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <XCircle className="w-4 h-4 text-red-400" />
-                    <h3 className="text-base font-bold text-white/90">Cons</h3>
+                    <h3 className="text-base font-bold text-red-300">Cons</h3>
                   </div>
                   <ul className="space-y-3">
                     {data.cons.map((c, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/60 text-sm leading-relaxed">
+                      <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
                         <div className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0"></div> {c}
                       </li>
                     ))}
@@ -478,26 +478,26 @@ export default function RoadmapDetail() {
 
             {/* 5. FUTURE OUTLOOK */}
             <div className="space-y-6">
-              <div className="p-6 md:p-10 bg-white/[0.02] border border-white/5 rounded-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none">
+              <div className="p-6 md:p-10 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-24 h-24" />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold mb-4 text-purple-200">Future Outlook</h3>
-                <p className="text-sm md:text-base text-white/50 leading-relaxed mb-6">{data.future}</p>
-                <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 inline-flex items-center gap-2">
-                   <Award className="w-4 h-4 text-purple-400" />
-                   <p className="text-purple-300 text-[10px] font-bold uppercase tracking-wider">{data.opportunity}</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-purple-300">Future Outlook</h3>
+                <p className="text-sm md:text-base text-white/60 leading-relaxed mb-6">{data.future}</p>
+                <div className="p-3 bg-purple-500/20 rounded-xl border border-purple-500/30 inline-flex items-center gap-2">
+                   <Award className="w-4 h-4 text-purple-300" />
+                   <p className="text-purple-200 text-[10px] font-bold uppercase tracking-wider">{data.opportunity}</p>
                 </div>
               </div>
 
               {/* 6. HOW TO START */}
-              <div className="p-6 md:p-10 bg-[#050505] border border-white/5 rounded-2xl">
-                <h3 className="text-xl md:text-2xl font-bold mb-6">How to Start</h3>
+              <div className="p-6 md:p-10 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+                <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-300">How to Start</h3>
                 <div className="space-y-3 mb-8">
                   {data.howTo.map((h, i) => (
                     <div key={i} className="flex items-center gap-4 p-2 hover:bg-white/[0.02] rounded-xl transition-colors">
-                      <span className="text-lg font-bold text-white/10">{i+1}.</span>
-                      <p className="text-white/60 text-sm md:text-base">{h}</p>
+                      <span className="text-lg font-bold text-blue-400/30">{i+1}.</span>
+                      <p className="text-white/70 text-sm md:text-base">{h}</p>
                     </div>
                   ))}
                 </div>
@@ -509,23 +509,23 @@ export default function RoadmapDetail() {
                   </div>
                   <div>
                     <h4 className="text-yellow-300/60 font-black tracking-widest uppercase text-[8px] mb-1">Pro Tip</h4>
-                    <p className="text-yellow-100/70 text-sm leading-relaxed italic">"{data.proTip}"</p>
+                    <p className="text-yellow-100/80 text-sm leading-relaxed italic">"{data.proTip}"</p>
                   </div>
                 </div>
               </div>
 
               {/* 7. RESOURCES */}
               {data.links.length > 0 && (
-                <div className="p-6 md:p-10 bg-black border border-white/5 rounded-2xl">
-                   <h3 className="text-[9px] font-black tracking-widest uppercase text-white/20 mb-6 text-center">Resources</h3>
+                <div className="p-6 md:p-10 bg-white/5 border border-white/10 rounded-2xl">
+                   <h3 className="text-[9px] font-black tracking-widest uppercase text-white/30 mb-6 text-center">Resources</h3>
                    <div className="grid sm:grid-cols-2 gap-3">
                     {data.links.map((l, i) => (
-                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-blue-500/30 transition-all">
+                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:border-blue-500/50 transition-all">
                         <div className="flex items-center gap-3">
-                           <ExternalLink className="w-3.5 h-3.5 text-blue-400/40 group-hover:text-blue-400 transition-colors" />
-                           <span className="text-xs font-bold text-white/40 group-hover:text-white transition-colors">{l.name}</span>
+                           <ExternalLink className="w-3.5 h-3.5 text-blue-400/60 group-hover:text-blue-400 transition-colors" />
+                           <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors">{l.name}</span>
                         </div>
-                        <ChevronRight className="w-3 h-3 text-white/10 group-hover:translate-x-1 transition-all" />
+                        <ChevronRight className="w-3 h-3 text-white/20 group-hover:translate-x-1 transition-all" />
                       </a>
                     ))}
                    </div>
