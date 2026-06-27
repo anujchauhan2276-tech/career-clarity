@@ -7,9 +7,20 @@
   --color-primary: #1e003b;
 }
 
+/* FIX: Forces the entire screen to paint black so it never smears */
+html, body, #root {
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+/* ... rest of your markdown stuff ... */
+
 html {
   scroll-behavior: smooth;
 }
+
+/* ... rest of your markdown and light-mode css ... */
 
 .markdown-body  {
   color: inherit;

@@ -40,7 +40,6 @@ export default function CountryPath() {
   }
 
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId);
-  
   const [language, setLanguage] = useState<"Native" | "English">("English");
   
   const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({});
@@ -52,6 +51,13 @@ export default function CountryPath() {
   const hasPremiumAccess = user?.email?.toLowerCase() === "anujchauhan2276@gmail.com";
 
   const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT['en'];
+
+  // FIX: This is the missing function that caused the TypeScript error
+  const getNativeTitle = (path: string, idx: number, isPremiumRoute: boolean) => {
+    if (!supportsNative || language === "English") return path;
+    if (isPremiumRoute) return nativePremiumRoadmaps[countryId]?.[idx - 100] || path;
+    return nativeCountryRoadmaps[countryId]?.[idx] || path;
+  };
 
   useEffect(() => {
     if (language === 'English' || !supportsNative) {
@@ -97,12 +103,10 @@ export default function CountryPath() {
                     });
                     successCount++;
                 } catch(chunkErr) {
-                    console.warn(`Translation chunk ${i} failed. Using English fallback.`, chunkErr);
                     chunk.forEach(eng => dict[eng] = eng); 
                 }
                 
                 await new Promise(resolve => setTimeout(resolve, 300));
-                
                 setTranslatedTitles({...dict});
             }
             
@@ -121,20 +125,29 @@ export default function CountryPath() {
 
   // Dual-Language Search Filter
   const query = searchQuery.toLowerCase().trim();
-  const filterPath = (path: string) => {
+  const filterPath = (path: string, idx: number, isPremiumRoute: boolean) => {
     const engTitle = path.toLowerCase();
-    const translatedTitle = (translatedTitles[path] || path).toLowerCase();
+    const translatedTitle = getNativeTitle(path, idx, isPremiumRoute).toLowerCase();
     return engTitle.includes(query) || translatedTitle.includes(query);
   };
 
-  const filteredTraditional = traditionalPaths.filter(filterPath);
-  const filteredBonus = bonusPaths.filter(filterPath);
-  const filteredPremium = premiumRoadmaps.filter(filterPath);
+  const filteredTraditional = traditionalPaths
+    .map((path, idx) => ({ path, idx, isPremium: false }))
+    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+
+  const filteredBonus = bonusPaths
+    .map((path, idx) => ({ path, idx: idx + 50, isPremium: false }))
+    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+
+  const filteredPremium = premiumRoadmaps
+    .map((path, idx) => ({ path, idx: idx + 100, isPremium: true }))
+    .filter(item => filterPath(item.path, item.idx, item.isPremium));
+
   const totalResults = filteredTraditional.length + filteredBonus.length + filteredPremium.length;
 
   const renderCard = (path: string, idx: number, isPremiumRoute: boolean) => {
     const isLocked = isPremiumRoute && !hasPremiumAccess;
-    const displayTitle = (language === "Native" && translatedTitles[path]) ? translatedTitles[path] : path;
+    const displayTitle = getNativeTitle(path, idx, isPremiumRoute);
 
     return (
       <div
@@ -146,39 +159,39 @@ export default function CountryPath() {
             navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
           }
         }}
-        // FIX: Adjusted padding and min-height for perfect 2-column mobile layout
-        className={`pathway-card flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-2xl border transition-all duration-300 group cursor-pointer shadow-lg shadow-black/50 ${
-          isTranslating && !translatedTitles[path] ? "animate-pulse opacity-70" : ""
+        // FIX: Stripped all shadow-lg, backdrop-blur, and transform-gpu from here! 
+        // This is now purely flat CSS so your phone GPU doesn't melt.
+        className={`pathway-card flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer ${
+          isTranslating && !translatedTitles[path] ? "opacity-70" : ""
         } ${
           isPremiumRoute
             ? hasPremiumAccess
-              ? "border-yellow-500/50 bg-[#1a1500] hover:bg-yellow-900/30 hover:-translate-y-1 hover:shadow-yellow-500/20"
-              : "border-yellow-500/20 bg-[#151100] hover:bg-yellow-900/20 hover:border-yellow-500/50 hover:shadow-yellow-500/10"
-            : "border-white/10 bg-[#111] hover:bg-white/5 hover:border-purple-500/50 hover:-translate-y-1 hover:shadow-purple-500/20"
+              ? "border-yellow-500/30 bg-[#1a1500] hover:bg-yellow-900/30 hover:border-yellow-500/50"
+              : "border-yellow-500/10 bg-[#110d00] hover:bg-yellow-900/20"
+            : "border-white/10 bg-[#111] hover:bg-white/5 hover:border-purple-500/30"
         }`}
       >
         <div className="flex items-start justify-between gap-1 sm:gap-2">
           <span
-            // FIX: Adjusted text size so it doesn't break out of the smaller mobile boxes
-            className={`font-semibold text-sm sm:text-base transition-colors leading-snug break-words ${isPremiumRoute ? "text-yellow-200/90 group-hover:text-yellow-100" : "text-white/90 group-hover:text-white"}`}
+            className={`font-semibold text-sm sm:text-base leading-snug break-words ${isPremiumRoute ? "text-yellow-200/90" : "text-white/90"}`}
           >
             {displayTitle}
           </span>
           {isPremiumRoute &&
             (isLocked ? (
-              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500/70 shrink-0 mt-1" />
+              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500/50 shrink-0 mt-1" />
             ) : (
               <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500 shrink-0 mt-1" />
             ))}
         </div>
         <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3">
           {isLocked && (
-            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider group-hover:text-yellow-500 transition-colors">
+            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider">
               {ui.premiumBadge}
             </span>
           )}
           <ChevronRight
-            className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isPremiumRoute ? "text-yellow-500/50 group-hover:text-yellow-400" : "text-white/20 group-hover:text-purple-400"}`}
+            className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremiumRoute ? "text-yellow-500/40" : "text-white/20 group-hover:text-purple-400"}`}
           />
         </div>
       </div>
@@ -221,7 +234,7 @@ export default function CountryPath() {
                   onClick={() => setLanguage("English")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "English" 
-                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
+                      ? "bg-purple-500 text-white" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -231,7 +244,7 @@ export default function CountryPath() {
                   onClick={() => setLanguage("Native")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "Native" 
-                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
+                      ? "bg-purple-500 text-white" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -281,9 +294,8 @@ export default function CountryPath() {
                   {ui.traditional}
                   <div className="h-px bg-white/20 flex-grow ml-4"></div>
                 </h2>
-                {/* FIX: grid-cols-2 applied here forcing exactly 2 columns on mobile */}
                 <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                  {filteredTraditional.map((path, idx) => renderCard(path, idx, false))}
+                  {filteredTraditional.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
             )}
@@ -297,9 +309,8 @@ export default function CountryPath() {
                   </span>
                   <div className="h-px bg-purple-500/30 flex-grow ml-2 sm:ml-4"></div>
                 </h2>
-                {/* FIX: grid-cols-2 applied here */}
                 <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                  {filteredBonus.map((path, idx) => renderCard(path, idx + 50, false))}
+                  {filteredBonus.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
             )}
@@ -313,9 +324,8 @@ export default function CountryPath() {
                   </span>
                   <div className="h-px bg-yellow-500/30 flex-grow ml-2 sm:ml-4"></div>
                 </h2>
-                {/* FIX: grid-cols-2 applied here */}
                 <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                  {filteredPremium.map((path, idx) => renderCard(path, idx + 100, true))}
+                  {filteredPremium.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
             )}

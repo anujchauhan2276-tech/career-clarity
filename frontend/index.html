@@ -2,10 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Career Clarity</title>
   </head>
-  <body class="bg-black text-white">
+  <!-- FIX: Hardcoded black background prevents Android frame smearing -->
+  <body class="bg-black text-white" style="background-color: #000000;">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
