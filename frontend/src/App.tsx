@@ -16,20 +16,23 @@ import LearnMore from "./pages/LearnMore";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
-import LoginPage from "./pages/LoginPage"; // FIX: Updated Import Name
+import LoginPage from "./pages/LoginPage";
 import Register from "./pages/Register";
 
 export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        {/* Smart scroll restorer */}
         <ScrollToTop />
-        <div className={`bg-black text-white font-sans selection:bg-purple-500/30 min-h-[100dvh]`}>
+        
+        {/* FIX: Changed min-h-[100dvh] to min-h-screen to stop mobile layout thrashing! */}
+        <div className="bg-black text-white font-sans selection:bg-purple-500/30 min-h-screen w-full relative">
           <Header />
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<LoginPage />} /> {/* FIX: Updated Component */}
+              <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/learn-more" element={<LearnMore />} />
               <Route path="/process" element={<Process />} />
