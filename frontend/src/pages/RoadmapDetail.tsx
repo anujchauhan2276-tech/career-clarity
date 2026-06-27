@@ -470,7 +470,7 @@ export default function RoadmapDetail() {
                         {/* Milestones & Anti-patterns */}
                         <div className="grid md:grid-cols-2 gap-3">
                           {step.milestones.length > 0 && (
-                            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                            <div className="p-4 bg-blue-950/40 border border-blue-500/30 rounded-xl">
                               <h4 className="text-[8px] font-black uppercase tracking-widest text-blue-300 mb-2 flex items-center gap-2">
                                 <Zap className="w-2.5 h-2.5" /> Checkpoints
                               </h4>
@@ -484,7 +484,7 @@ export default function RoadmapDetail() {
                             </div>
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                            <div className="p-4 bg-red-950/40 border border-red-500/30 rounded-xl">
                                <h4 className="text-[8px] font-black uppercase tracking-widest text-red-300 mb-2 flex items-center gap-2">
                                 <ShieldAlert className="w-2.5 h-2.5" /> Avoid
                               </h4>
@@ -507,7 +507,7 @@ export default function RoadmapDetail() {
 
             {/* 4. PROS & CONS */}
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-                <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl">
+                <div className="p-6 bg-green-950/40 border border-green-500/30 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                     <h3 className="text-base font-bold text-green-300">Pros</h3>
@@ -521,7 +521,7 @@ export default function RoadmapDetail() {
                   </ul>
                 </div>
 
-                <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-2xl">
+                <div className="p-6 bg-red-950/40 border border-red-500/30 rounded-2xl">
                   <div className="flex items-center gap-2 mb-4">
                     <XCircle className="w-4 h-4 text-red-400" />
                     <h3 className="text-base font-bold text-red-300">Cons</h3>
@@ -538,7 +538,7 @@ export default function RoadmapDetail() {
 
             {/* 5. FUTURE OUTLOOK */}
             <div className="space-y-6">
-              <div className="p-6 md:p-10 bg-purple-500/10 border border-purple-500/30 rounded-2xl relative overflow-hidden">
+              <div className="p-6 md:p-10 bg-purple-950/40 border border-purple-500/30 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-24 h-24" />
                 </div>
@@ -551,7 +551,7 @@ export default function RoadmapDetail() {
               </div>
 
               {/* 6. HOW TO START */}
-              <div className="p-6 md:p-10 bg-blue-500/10 border border-blue-500/30 rounded-2xl">
+              <div className="p-6 md:p-10 bg-blue-950/40 border border-blue-500/30 rounded-2xl">
                 <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-300">How to Start</h3>
                 <div className="space-y-3 mb-8">
                   {data.howTo.map((h, i) => (
@@ -563,7 +563,7 @@ export default function RoadmapDetail() {
                 </div>
 
                 {/* Pro Tip */}
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
+                <div className="p-4 bg-yellow-950/40 border border-yellow-500/30 rounded-xl flex gap-4 items-start">
                   <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
                     <Lightbulb className="w-4 h-4 text-yellow-400" />
                   </div>
