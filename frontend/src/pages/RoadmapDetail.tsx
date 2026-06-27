@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -21,8 +21,13 @@ import {
   MousePointer2,
   Sparkles,
   Info,
-  Calendar,
-  Activity
+  Layers,
+  Layout,
+  Compass,
+  Trophy,
+  AlertCircle,
+  Flame,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
@@ -30,7 +35,7 @@ import { countryRoadmaps, premiumRoadmaps } from "../data/countryRoadmaps";
 
 /**
  * ============================================================================
- * DATA MODELS & INTERFACES
+ * DATA CONTRACTS & INTERFACES
  * ============================================================================
  */
 
@@ -60,84 +65,59 @@ interface RoadmapData {
 
 /**
  * ============================================================================
- * REUSABLE UI SUB-COMPONENTS
+ * SUB-COMPONENTS: ATOMIC UI ELEMENTS
  * ============================================================================
  */
 
-const SectionLabel = ({ icon: Icon, title, subtitle }: { icon: any, title: string, subtitle: string }) => (
-  <div className="mb-6">
-    <div className="flex items-center gap-2 mb-1">
-      <div className="p-1.5 bg-white/5 rounded-md border border-white/10">
-        <Icon className="w-4 h-4 text-purple-400" />
+const SectionTitle = ({ icon: Icon, title, subtitle, glowColor }: { icon: any, title: string, subtitle: string, glowColor: string }) => (
+  <div className="relative mb-12">
+    <div className={`absolute -left-10 top-0 w-20 h-20 blur-[50px] opacity-20 rounded-full ${glowColor}`} />
+    <div className="flex items-center gap-4 mb-2">
+      <div className="p-3 bg-white/5 border border-white/10 rounded-2xl shadow-xl">
+        <Icon className="w-5 h-5 text-white" />
       </div>
-      <h2 className="text-xs font-black tracking-[0.2em] uppercase text-white/40">{title}</h2>
+      <div className="flex flex-col">
+        <h2 className="text-xl md:text-2xl font-display font-bold tracking-tight text-white/90">{title}</h2>
+        <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/20">{subtitle}</span>
+      </div>
     </div>
-    <p className="text-[10px] font-medium ml-9 uppercase tracking-widest text-white/20">{subtitle}</p>
   </div>
 );
 
-const StatusBadge = ({ children, color = "purple" }: { children: React.ReactNode, color?: string }) => {
-  const colorMap: Record<string, string> = {
-    purple: "bg-purple-500/20 border-purple-500/30 text-purple-300",
-    green: "bg-green-500/20 border-green-500/30 text-green-300",
-    blue: "bg-blue-500/20 border-blue-500/30 text-blue-300",
-    orange: "bg-orange-500/20 border-orange-500/30 text-orange-300",
-    red: "bg-red-500/20 border-red-500/30 text-red-300",
-  };
-  return (
-    <span className={`px-2.5 py-0.5 border rounded-md text-[9px] font-bold tracking-wider uppercase ${colorMap[color]}`}>
-      {children}
-    </span>
-  );
-};
+const CustomPill = ({ children, colorClass }: { children: React.ReactNode, colorClass: string }) => (
+  <span className={`px-3 py-1 border rounded-lg text-[10px] font-black uppercase tracking-widest ${colorClass}`}>
+    {children}
+  </span>
+);
 
 /**
  * ============================================================================
- * ANIMATION VARIANTS (Optimized for Mobile Stability)
- * ============================================================================
- */
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1,
-    transition: { staggerChildren: 0.05, delayChildren: 0.1 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 }, // Reduced distance to prevent "jumping"
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.4, ease: "easeOut" } 
-  }
-};
-
-/**
- * ============================================================================
- * MAIN COMPONENT: RoadmapDetail
+ * MAIN COMPONENT: ROADMAP DETAIL
  * ============================================================================
  */
 
 export default function RoadmapDetail() {
+  // HOOKS
   const { countryId, courseId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlLang = searchParams.get("lang") as "Native" | "English" | null;
 
+  // AUTH & STATE
   const { user, getToken } = useAuth();
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
+  // REFS & URLS
   const containerRef = useRef<HTMLDivElement>(null);
   const decodedCourse = courseId ? decodeURIComponent(courseId) : "";
   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
   /**
-   * DATA PROCESSING UTILITY
+   * LOGIC: PARSING ENGINE
+   * Specifically built to handle your new text-only entry method in Django Admin.
    */
   const parseTextToList = (item: any): string[] => {
     if (Array.isArray(item)) return item;
@@ -145,14 +125,14 @@ export default function RoadmapDetail() {
       return item
         .split('\n')
         .map(line => line.trim())
-        .map(line => line.replace(/^[•\-\*\d\.]+\s*/, ''))
+        .map(line => line.replace(/^[•\-\*\d\.]+\s*/, '')) 
         .filter(line => line.length > 0);
     }
     return [];
   };
 
   /**
-   * USER PROGRESS SYNC
+   * PERSISTENCE: LOADING PROGRESS
    */
   useEffect(() => {
     if (user && decodedCourse) {
@@ -165,15 +145,19 @@ export default function RoadmapDetail() {
             setCompletedSteps(parsed.completedSteps || []);
           }
         } catch (e: any) {
-          console.error("Local persistence read error");
+          console.error("Local persistence failed.");
         }
       };
       fetchProgress();
     }
   }, [user, decodedCourse]);
 
+  /**
+   * INTERACTION: TICKING SYSTEM
+   */
   const toggleStep = async (stepNum: number) => {
     if (!user) return;
+    
     const newCompleted = completedSteps.includes(stepNum)
       ? completedSteps.filter((s) => s !== stepNum)
       : [...completedSteps, stepNum];
@@ -187,12 +171,12 @@ export default function RoadmapDetail() {
         lastUpdated: new Date().toISOString(),
       }));
     } catch (e: any) {
-      console.error("Local persistence write error");
+      console.warn("Storage write error");
     }
   };
 
   /**
-   * MULTILINGUAL SUPPORT
+   * LOCALIZATION LOGIC
    */
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId || "");
   const [language, setLanguage] = useState<"Native" | "English">(urlLang || "English");
@@ -206,7 +190,7 @@ export default function RoadmapDetail() {
   }, [language, navigate, searchParams, urlLang]);
 
   /**
-   * SERVER COMMUNICATION
+   * SERVER COMMUNICATION: DJANGO SYNC
    */
   useEffect(() => {
     if (!decodedCourse) return;
@@ -231,7 +215,8 @@ export default function RoadmapDetail() {
           }),
         });
 
-        if (!res.ok) throw new Error("Backend retrieval failed");
+        if (!res.ok) throw new Error("404");
+        
         const dataJson = await res.json();
 
         if (res.status === 403 && dataJson.is_locked) {
@@ -282,178 +267,189 @@ export default function RoadmapDetail() {
 
   if (!countryId || !courseId) return <Navigate to="/setup" replace />;
 
+  /**
+   * CALCULATED STATS
+   */
   const progressPercent = data?.roadmapSteps.length 
     ? Math.round((completedSteps.length / data.roadmapSteps.length) * 100) 
     : 0;
 
   return (
-    <div className="min-h-[100dvh] bg-[#020202] text-white pt-24 pb-40 selection:bg-purple-500/20 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#020202] text-white pt-24 pb-40 selection:bg-indigo-500/30 font-sans overflow-x-hidden">
       
-      {/* 1. NARROW PROGRESS BAR (Hardware Accelerated) */}
+      {/* 1. VIBRANT PROGRESS HEADER */}
       <AnimatePresence>
         {data && !loading && !error && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fixed top-0 left-0 w-full h-1 z-[100] bg-white/5 pointer-events-none transform-gpu"
-            style={{ transform: 'translateZ(0)' }}
           >
              <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.8, ease: "circOut" }}
-              className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" 
+              transition={{ duration: 1, ease: "circOut" }}
+              className="h-full bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]" 
              />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="container mx-auto px-5 md:px-10 max-w-5xl" ref={containerRef}>
+      <div className="container mx-auto px-5 md:px-12 max-w-6xl" ref={containerRef}>
         
         {/* Navigation Breadcrumb */}
         <motion.button 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate(`/${countryId}`)} 
-          className="flex items-center gap-2 text-white/30 hover:text-white mb-10 transition-all group font-bold text-[10px] tracking-widest uppercase"
+          className="flex items-center gap-2 text-white/30 hover:text-white mb-10 transition-all group font-black text-[10px] tracking-[0.3em] uppercase"
         >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" /> 
+          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1.5 transition-transform" /> 
           Back to Country Path
         </motion.button>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-60">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500 mb-4 opacity-50" />
-            <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">Establishing Sync</p>
+            <Loader2 className="w-10 h-10 animate-spin text-purple-500 mb-6 opacity-80" />
+            <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.5em] animate-pulse">Syncing Database</p>
           </div>
         ) : error ? (
            <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-32 text-center"
            >
              <div className="w-20 h-20 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-center mb-8 mx-auto">
                 <Map className="w-8 h-8 text-white/10" />
              </div>
-             <h2 className="text-xl font-display font-bold mb-3 text-white/90 uppercase tracking-tight">Path Under Maintenance</h2>
-             <p className="text-white/30 max-w-xs mx-auto text-sm leading-relaxed">
-                The data for <strong>{decodedCourse}</strong> is currently being verified for {countryId.toUpperCase()} standards.
+             <h2 className="text-2xl font-display font-bold mb-3 text-white/90 tracking-tighter uppercase">Roadmap Pending</h2>
+             <p className="text-white/30 max-w-xs mx-auto text-sm leading-relaxed font-light">
+                Our strategists are currently finalizing the verified path for <strong>{decodedCourse}</strong>.
              </p>
            </motion.div>
         ) : data ? (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="will-change-contents"
-          >
+          <div className="space-y-24 md:space-y-32">
             
-            {/* 2. BALANCED HERO SECTION */}
-            <div className="mb-10">
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                <StatusBadge color="purple">{countryId} Blueprint</StatusBadge>
-                {progressPercent > 0 && <StatusBadge color="green">{progressPercent}% Mastery</StatusBadge>}
+            {/* 2. HERO SECTION: TYPOGRAPHY RE-BALANCE */}
+            <div className="relative">
+              <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none transform-gpu" />
+              
+              <div className="flex flex-wrap items-center gap-3 mb-10">
+                <CustomPill colorClass="bg-blue-500/10 border-blue-500/20 text-blue-400">{countryId} Blueprint</CustomPill>
+                {progressPercent > 0 && <CustomPill colorClass="bg-green-500/10 border-green-500/20 text-green-400">{progressPercent}% Mastered</CustomPill>}
                 <div className="h-px bg-white/5 flex-grow"></div>
                 {supportsNative && (
                    <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
-                      <button onClick={() => setLanguage("English")} className={`px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all ${language === 'English' ? "bg-white text-black" : "text-white/40 hover:text-white"}`}>EN</button>
-                      <button onClick={() => setLanguage("Native")} className={`px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all ${language === 'Native' ? "bg-purple-600 text-white" : "text-white/40 hover:text-white"}`}>Native</button>
+                      <button onClick={() => setLanguage("English")} className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${language === 'English' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white"}`}>EN</button>
+                      <button onClick={() => setLanguage("Native")} className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${language === 'Native' ? "bg-indigo-600 text-white shadow-lg" : "text-white/40 hover:text-white"}`}>Native</button>
                    </div>
                 )}
               </div>
 
               <motion.h1 
-                variants={itemVariants}
-                className="text-4xl md:text-6xl font-display font-bold mb-6 tracking-tight leading-tight"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="text-4xl md:text-7xl font-display font-bold mb-10 tracking-tighter leading-[1.05]"
               >
                 {data.title}
               </motion.h1>
               
-              <motion.div variants={itemVariants}>
-                <p className="text-base md:text-lg text-white/60 leading-relaxed font-normal max-w-3xl border-l-2 border-white/5 pl-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="max-w-4xl"
+              >
+                <p className="text-base md:text-xl text-white/50 leading-relaxed font-light border-l-2 border-white/5 pl-8 italic">
                   {data.description}
                 </p>
               </motion.div>
             </div>
 
-            {/* 3. MODERN TIMELINE */}
-            <div className="mb-12">
-              <SectionLabel icon={Target} title="Curriculum Structure" subtitle="Chronological Order" />
+            {/* 3. CORE TIMELINE (THE MASTER PATH) */}
+            <section>
+              <SectionTitle icon={Target} title="Mastery Curriculum" subtitle="Sequential Execution" glowColor="bg-purple-600" />
 
-              <div className="relative ml-2 md:ml-4 border-l border-white/10 space-y-14">
+              <div className="relative ml-2 md:ml-6 border-l border-white/10 space-y-16 py-4">
                 {data.roadmapSteps.map((step, i) => {
                   const isCompleted = completedSteps.includes(step.step);
                   return (
                     <motion.div 
                       key={i} 
-                      variants={itemVariants}
+                      initial={{ opacity: 0, x: 10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true, margin: "-50px" }}
-                      className="relative pl-8 md:pl-12 will-change-transform"
+                      className="relative pl-10 md:pl-16 group"
                     >
-                      {/* Interaction Node (Fixed offset for mobile) */}
+                      {/* Interaction Toggle Node */}
                       <button 
                         onClick={() => toggleStep(step.step)}
-                        className={`absolute -left-[13px] top-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 z-10 transform-gpu ${
+                        className={`absolute -left-[17px] md:-left-[21px] top-0 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-700 z-10 transform-gpu ${
                           isCompleted 
-                            ? "bg-green-500 border-green-400 rotate-90 scale-110" 
-                            : "bg-[#020202] border-white/10 hover:border-purple-500"
+                            ? "bg-green-500 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)] rotate-90 scale-110" 
+                            : "bg-[#020202] border-white/10 hover:border-purple-500 hover:scale-110"
                         }`}
                       >
-                        {isCompleted ? <Check className="w-4 h-4 text-white" strokeWidth={5} /> : <div className="w-1 h-1 bg-white/20 rounded-full"></div>}
+                        {isCompleted ? <Check className="w-4 h-4 text-white" strokeWidth={5} /> : <div className="w-1.5 h-1.5 bg-white/20 rounded-full"></div>}
                       </button>
 
-                      <div className={`transition-all duration-700 transform-gpu ${isCompleted ? "opacity-30 grayscale blur-[0.3px]" : "opacity-100"}`}>
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                          <span className="text-[9px] font-black tracking-widest uppercase text-indigo-400">Stage 0{step.step}</span>
-                          <span className="text-[9px] font-medium text-white/20 flex items-center gap-1">
-                             <Clock className="w-2.5 h-2.5" /> {step.timeframe}
-                          </span>
-                          <StatusBadge color={step.difficulty.toLowerCase().includes("beginner") ? "green" : "orange"}>{step.difficulty}</StatusBadge>
+                      {/* Step Content */}
+                      <div className={`transition-all duration-700 transform-gpu ${isCompleted ? "opacity-20 grayscale scale-[0.99] blur-[0.5px]" : "opacity-100"}`}>
+                        <div className="flex flex-wrap items-center gap-4 mb-3">
+                          <span className="text-[10px] font-black tracking-[0.2em] uppercase text-indigo-500">Stage 0{step.step}</span>
+                          <div className="flex items-center gap-2 text-white/30 font-mono text-[10px] uppercase">
+                             <Clock className="w-3.5 h-3.5" /> {step.timeframe}
+                          </div>
+                          <CustomPill colorClass={step.difficulty.toLowerCase().includes('expert') ? "bg-orange-500/10 border-orange-500/20 text-orange-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}>
+                            {step.difficulty}
+                          </CustomPill>
                         </div>
                         
-                        <h3 className="text-xl md:text-2xl font-display font-bold mb-3 tracking-tight text-white/90">{step.title}</h3>
+                        <h3 className="text-xl md:text-3xl font-display font-bold mb-4 tracking-tight text-white/90 group-hover:text-white transition-colors">{step.title}</h3>
                         
-                        <p className="text-white/60 text-sm md:text-base leading-relaxed mb-6 whitespace-pre-wrap font-light">
+                        <p className="text-white/50 text-sm md:text-lg leading-relaxed mb-8 whitespace-pre-wrap font-light max-w-3xl">
                           {step.desc}
                         </p>
 
-                        {/* Minimal Tool Pills */}
+                        {/* Toolstack List */}
                         {step.tools.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-6">
+                          <div className="flex flex-wrap gap-2 mb-8">
                             {step.tools.map((t, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[10px] font-medium text-white/40 uppercase tracking-tighter">
+                              <span key={idx} className="px-3 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-bold text-white/30 uppercase tracking-widest hover:text-white/60 transition-all cursor-default">
                                 {t}
                               </span>
                             ))}
                           </div>
                         )}
 
-                        {/* Milestone Grids */}
-                        <div className="grid md:grid-cols-2 gap-4">
+                        {/* VIBRANT MILESTONES & TRAPS */}
+                        <div className="grid md:grid-cols-2 gap-5">
                           {step.milestones.length > 0 && (
-                            <div className="p-4 bg-blue-500/[0.03] border border-blue-500/10 rounded-xl">
-                              <h4 className="text-[8px] font-black uppercase tracking-widest text-blue-400/60 mb-3 flex items-center gap-2">
-                                <Zap className="w-2.5 h-2.5" /> Checkpoints
+                            <div className="p-6 bg-blue-600/5 border border-blue-500/20 rounded-[1.5rem] shadow-2xl shadow-blue-500/5 hover:border-blue-500/40 transition-colors transform-gpu">
+                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-5 flex items-center gap-3">
+                                <Zap className="w-4 h-4 fill-current" /> Mastery Checkpoints
                               </h4>
-                              <ul className="space-y-2.5">
+                              <ul className="space-y-3.5">
                                 {step.milestones.map((m, mIdx) => (
-                                  <li key={mIdx} className="text-xs text-white/60 flex gap-2 items-start leading-relaxed">
-                                    <span className="text-blue-500/50 mt-1.5 w-1 h-1 rounded-full bg-blue-500 shrink-0" /> {m}
+                                  <li key={mIdx} className="text-sm text-blue-100/60 flex gap-3 leading-relaxed group/li">
+                                    <div className="w-1 h-1 rounded-full bg-blue-500 mt-2 shrink-0 group-hover/li:scale-150 transition-transform shadow-[0_0_10px_rgba(59,130,246,1)]" />
+                                    <span className="flex-1 group-hover/li:text-blue-100 transition-colors">{m}</span>
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <div className="p-4 bg-red-500/[0.03] border border-red-500/10 rounded-xl">
-                               <h4 className="text-[8px] font-black uppercase tracking-widest text-red-400/60 mb-3 flex items-center gap-2">
-                                <ShieldAlert className="w-2.5 h-2.5" /> Avoid
+                            <div className="p-6 bg-red-600/5 border border-red-500/20 rounded-[1.5rem] shadow-2xl shadow-red-500/5 hover:border-red-500/40 transition-colors transform-gpu">
+                               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-5 flex items-center gap-3">
+                                <ShieldAlert className="w-4 h-4 fill-current" /> Critical Traps
                               </h4>
-                              <ul className="space-y-2.5">
+                              <ul className="space-y-3.5">
                                 {step.antiPatterns.map((a, aIdx) => (
-                                  <li key={aIdx} className="text-xs text-white/60 flex gap-2 items-start leading-relaxed italic">
-                                    <span className="text-red-900/50 font-black shrink-0">×</span>
-                                    <span className="flex-1">{a}</span>
+                                  <li key={aIdx} className="text-sm text-red-100/50 flex gap-3 leading-relaxed italic group/li">
+                                    <span className="text-red-700 font-black text-lg leading-none">×</span>
+                                    <span className="flex-1 group-hover/li:text-red-100 transition-colors">{a}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -465,95 +461,143 @@ export default function RoadmapDetail() {
                   );
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* 4. BALANCED ANALYSIS GRID */}
-            <div className="grid md:grid-cols-2 gap-5 mb-12">
-                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner transform-gpu">
-                  <div className="flex items-center gap-3 mb-6">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <h3 className="text-lg font-bold text-white/90 uppercase tracking-tighter">Strategic Value</h3>
-                  </div>
-                  <ul className="space-y-4">
-                    {data.pros.map((p, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/50 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-green-500 mt-2 shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.3)]"></div> {p}
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
+            {/* 4. MARKET INTELLIGENCE SECTION (PROS & CONS MERGED) */}
+            <section className="relative">
+              <div className="absolute inset-0 bg-white/[0.01] rounded-[4rem] -m-10 pointer-events-none -z-10 border border-white/5" />
+              <SectionTitle icon={Sparkles} title="Market Intelligence" subtitle="Risk/Reward Ratio" glowColor="bg-emerald-600" />
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                  {/* PROS CARD */}
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    className="p-10 bg-green-500/10 border border-green-500/20 rounded-[3rem] shadow-3xl shadow-green-500/5 hover:border-green-500/40 transition-all duration-500 transform-gpu"
+                  >
+                    <div className="flex items-center gap-5 mb-10 text-green-400">
+                      <div className="p-3 bg-green-500/10 rounded-2xl border border-green-500/20 shadow-inner">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-2xl font-display font-bold uppercase tracking-tight">Vantage Points</h3>
+                    </div>
+                    <ul className="space-y-6">
+                      {data.pros.map((p, i) => (
+                        <li key={i} className="flex items-start gap-4 text-green-50/70 text-lg leading-relaxed group/item">
+                          <div className="w-2 h-2 rounded-full bg-green-500 mt-2.5 shrink-0 shadow-[0_0_15px_rgba(34,197,94,1)] group-hover/item:scale-125 transition-transform"></div> 
+                          <span className="flex-1 group-hover/item:text-white transition-colors">{p}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
 
-                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 bg-[#0A0A0A] border border-white/5 rounded-3xl shadow-inner transform-gpu">
-                  <div className="flex items-center gap-3 mb-6">
-                    <XCircle className="w-4 h-4 text-red-500" />
-                    <h3 className="text-lg font-bold text-white/90 uppercase tracking-tighter">Operational Risks</h3>
-                  </div>
-                  <ul className="space-y-4">
-                    {data.cons.map((c, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white/50 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-red-400 mt-2 shrink-0 shadow-[0_0_10px_rgba(239,68,68,0.3)]"></div> {c}
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-            </div>
+                  {/* CONS CARD */}
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    className="p-10 bg-red-500/10 border border-red-500/20 rounded-[3rem] shadow-3xl shadow-red-500/5 hover:border-red-500/40 transition-all duration-500 transform-gpu"
+                  >
+                    <div className="flex items-center gap-5 mb-10 text-red-400">
+                      <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20 shadow-inner">
+                        <XCircle className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-2xl font-display font-bold uppercase tracking-tight">Friction Points</h3>
+                    </div>
+                    <ul className="space-y-6">
+                      {data.cons.map((c, i) => (
+                        <li key={i} className="flex items-start gap-4 text-red-50/60 text-lg leading-relaxed group/item">
+                          <div className="w-2 h-2 rounded-full bg-red-500 mt-2.5 shrink-0 shadow-[0_0_15px_rgba(239,68,68,1)] group-hover/item:scale-125 transition-transform"></div> 
+                          <span className="flex-1 group-hover/item:text-white transition-colors">{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+              </div>
+            </section>
 
-            {/* 5. MACRO STRATEGY */}
-            <div className="space-y-6">
-              <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-white/[0.02] border border-white/5 rounded-[2rem] relative overflow-hidden transform-gpu">
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                   <TrendingUp className="w-32 h-32" />
+            {/* 5. STRATEGIC MACRO DATA */}
+            <div className="space-y-12">
+              
+              {/* Market Outlook Component */}
+              <motion.div 
+                whileHover={{ scale: 1.005 }}
+                className="p-10 md:p-20 bg-[#080808] border border-white/5 rounded-[4rem] relative overflow-hidden group shadow-3xl transform-gpu"
+              >
+                <div className="absolute top-0 right-0 p-16 opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-1000 transform-gpu group-hover:rotate-12">
+                   <TrendingUp className="w-64 h-64" />
                 </div>
-                <h3 className="text-xl md:text-3xl font-display font-bold mb-6 text-purple-200 uppercase tracking-tight">Market Outlook</h3>
-                <p className="text-sm md:text-lg text-white/50 leading-relaxed mb-10 font-light">{data.future}</p>
-                <div className="p-4 bg-purple-500/10 rounded-xl border border-purple-500/20 inline-flex items-center gap-3">
-                   <Award className="w-4 h-4 text-purple-400" />
-                   <p className="text-purple-300 text-xs font-bold uppercase tracking-wider">{data.opportunity}</p>
+                <h3 className="text-3xl md:text-5xl font-display font-bold mb-10 text-purple-200 tracking-tighter leading-none uppercase">Long-Term Trajectory</h3>
+                <p className="text-lg md:text-2xl text-white/40 leading-relaxed mb-16 font-light max-w-4xl tracking-tight">{data.future}</p>
+                
+                <div className="p-8 bg-purple-600/5 rounded-[2rem] border border-purple-500/10 inline-block backdrop-blur-md">
+                    <div className="flex items-center gap-4 mb-4">
+                      <Award className="w-5 h-5 text-purple-400" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-400/50">Industry Arbitrage</span>
+                    </div>
+                    <p className="text-purple-200 text-lg md:text-2xl font-bold tracking-tight italic">
+                      "{data.opportunity}"
+                    </p>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-[#050505] border border-white/5 rounded-[2rem] transform-gpu">
-                <h3 className="text-xl md:text-3xl font-display font-bold mb-10 uppercase tracking-tight">Entry Execution</h3>
-                <div className="space-y-3 mb-10">
+              {/* Step-by-Step Entry Logic */}
+              <div className="p-10 md:p-20 bg-[#040404] border border-white/5 rounded-[4rem] shadow-2xl relative overflow-hidden transform-gpu">
+                <SectionTitle icon={MousePointer2} title="Execution Playbook" subtitle="Tactical Onboarding" glowColor="bg-amber-600" />
+                <div className="grid gap-6 mb-20 relative z-10">
                   {data.howTo.map((h, i) => (
-                    <div key={i} className="flex items-center gap-5 p-3 hover:bg-white/[0.02] rounded-xl transition-colors group">
-                      <span className="text-xl font-display font-black text-white/10 group-hover:text-purple-500/30 transition-colors">0{i+1}</span>
-                      <p className="text-white/60 text-sm md:text-base font-light leading-relaxed">{h}</p>
+                    <div key={i} className="flex items-center gap-10 p-6 bg-white/[0.01] rounded-[2.5rem] border border-transparent hover:border-white/10 transition-all group shadow-inner">
+                      <span className="text-5xl md:text-7xl font-display font-black text-white/[0.03] group-hover:text-amber-500/20 transition-all duration-1000 leading-none select-none">0{i+1}</span>
+                      <p className="text-white/70 text-base md:text-xl font-light leading-relaxed">{h}</p>
                     </div>
                   ))}
                 </div>
                 
-                {/* Clean Pro Tip */}
-                <div className="p-6 bg-yellow-500/[0.03] border border-yellow-500/10 rounded-2xl flex gap-6 items-start shadow-inner transform-gpu">
-                  <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
-                    <Lightbulb className="w-5 h-5 text-yellow-400" />
+                {/* Pro Tip Callout */}
+                <motion.div 
+                  whileInView={{ x: [0, 5, -5, 0] }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  className="p-10 md:p-14 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent border border-amber-500/10 rounded-[3.5rem] flex flex-col md:flex-row gap-12 items-center relative overflow-hidden group shadow-2xl transform-gpu"
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(245,158,11,0.08),_transparent_50%)] pointer-events-none"></div>
+                  <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(245,158,11,0.2)] group-hover:scale-110 transition-all duration-1000">
+                    <Flame className="w-8 h-8 text-amber-500 fill-current" />
                   </div>
-                  <div>
-                    <h4 className="text-yellow-300/60 font-black tracking-widest uppercase text-[8px] mb-2">Industry Intelligence</h4>
-                    <p className="text-yellow-100/70 text-sm md:text-base leading-relaxed italic font-light">"{data.proTip}"</p>
+                  <div className="relative z-10">
+                    <h4 className="text-amber-500/60 font-black tracking-[0.5em] uppercase text-[9px] mb-4">Elite Insider Insight</h4>
+                    <p className="text-amber-100/70 text-xl md:text-3xl leading-tight font-display font-light whitespace-pre-wrap tracking-tighter">
+                      "{data.proTip}"
+                    </p>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
 
-              {/* 6. VAULT RESOURCES */}
+              {/* 6. VERIFIED KNOWLEDGE VAULT */}
               {data.links.length > 0 && (
-                <motion.div variants={itemVariants} viewport={{ once: true }} className="p-8 md:p-12 bg-black border border-white/5 rounded-[2rem] transform-gpu">
-                   <h3 className="text-[9px] font-black tracking-widest uppercase text-white/20 mb-8 text-center">Reference Library</h3>
-                   <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-10 md:p-20 bg-black border border-white/5 rounded-[4rem] shadow-3xl transform-gpu">
+                   <SectionTitle icon={LinkIcon} title="Resource Repository" subtitle="Global Knowledge Vault" glowColor="bg-blue-600" />
+                   <div className="grid sm:grid-cols-2 gap-6">
                     {data.links.map((l, i) => (
-                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-blue-500/30 transition-all">
-                        <div className="flex items-center gap-4">
-                           <ExternalLink className="w-4 h-4 text-blue-400/40 group-hover:text-blue-400 transition-colors" />
-                           <span className="text-xs font-bold text-white/40 group-hover:text-white transition-colors">{l.name}</span>
+                      <motion.a 
+                        whileHover={{ y: -4, backgroundColor: "rgba(37, 99, 235, 0.05)", borderColor: "rgba(37, 99, 235, 0.3)" }}
+                        whileTap={{ scale: 0.98 }}
+                        key={i} 
+                        href={l.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-between p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] group transition-all transform-gpu"
+                      >
+                        <div className="flex items-center gap-6">
+                           <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center group-hover:bg-blue-600/20 transition-all border border-blue-500/10">
+                             <Globe className="w-5 h-5 text-blue-400" />
+                           </div>
+                           <span className="text-base md:text-lg font-bold text-white/30 group-hover:text-blue-400 transition-colors">{l.name}</span>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-white/10 group-hover:translate-x-1 transition-all" />
-                      </a>
+                        <ExternalLink className="w-5 h-5 text-white/5 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                      </motion.a>
                     ))}
                    </div>
-                </motion.div>
+                </div>
               )}
             </div>
-          </motion.div>
+          </div>
         ) : null}
       </div>
     </div>
