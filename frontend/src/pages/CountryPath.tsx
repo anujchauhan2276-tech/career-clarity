@@ -9,7 +9,6 @@ const COUNTRIES: Record<string, string> = {
   uk: "United Kingdom", de: "Germany", es: "Spain", fr: "France", ru: "Russia",
 };
 
-// UI Translations
 const UI_DICT: Record<string, any> = {
   en: { title: "Pathways for", subtitle: "Explore the top in-demand career and educational roadmaps tailored to your region.", search: "Search roadmaps in", noResults: "No roadmaps found", noResultsDesc: "We couldn't find any paths matching", traditional: "Traditional Pathways", bonus: "Bonus Pathways", bonusSub: "(Emerging & Underrated)", premium: "Premium Pathways", premiumSub: "(Advanced, Modern & Entrepreneurial)", back: "Back to Country Selector", lang: "Language:", premiumBadge: "Premium" },
   jp: { title: "の経路", subtitle: "あなたの地域に合わせた、需要の高いキャリアと教育のロードマップを探索してください。", search: "検索...", noResults: "ロードマップが見つかりません", noResultsDesc: "一致する経路が見つかりませんでした:", traditional: "伝統的な経路", bonus: "ボーナス経路", bonusSub: "(新興・過小評価)", premium: "プレミアム経路", premiumSub: "(高度・現代的・起業家)", back: "国選択に戻る", lang: "表示言語:", premiumBadge: "プレミアム" },
@@ -33,30 +32,21 @@ export default function CountryPath() {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ✅ FIX: ALL hooks are now declared at the top, BEFORE any early return.
-  // Previously, useState for 'language', 'translatedTitles', 'isTranslating'
-  // were declared AFTER an early return, violating React's Rules of Hooks.
-  // When the admin logged in and 'hasPremiumAccess' changed, React's hook
-  // order was disrupted, causing the glitch/render collision you saw.
+  // ✅ All hooks at the top, before any early return
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState<"Native" | "English">("English");
   const [translatedTitles, setTranslatedTitles] = useState<Record<string, string>>({});
   const [isTranslating, setIsTranslating] = useState(false);
 
-  // ✅ Safe early return — all hooks are already declared above
   if (!countryId || !COUNTRIES[countryId]) {
     return <Navigate to="/setup" replace />;
   }
 
   const supportsNative = ["es", "de", "fr", "cn", "jp", "kr", "ru", "in"].includes(countryId);
-
   const freePaths = countryRoadmaps[countryId] || [];
   const traditionalPaths = freePaths.slice(0, 50);
   const bonusPaths = freePaths.slice(50);
-
-  // ✅ FIX: Email comparison is now fully case-insensitive on both sides
   const hasPremiumAccess = user?.email?.toLowerCase() === "anujchauhan2276@gmail.com";
-
   const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT['en'];
 
   const getNativeTitle = (path: string, idx: number, isPremiumRoute: boolean) => {
@@ -94,30 +84,21 @@ export default function CountryPath() {
         for (let i = 0; i < allToTranslate.length; i += chunkSize) {
           const chunk = allToTranslate.slice(i, i + chunkSize);
           const text = chunk.join("\n");
-
           try {
             const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
             if (!res.ok) throw new Error("Translation blocked.");
-
             const data = await res.json();
             const translatedText = data[0].map((item: any) => item[0] || "").join("");
             const translatedArray = translatedText.split("\n").map((s: string) => s.trim()).filter(Boolean);
-
-            chunk.forEach((eng, idx) => {
-              dict[eng] = translatedArray[idx] || eng;
-            });
+            chunk.forEach((eng, idx) => { dict[eng] = translatedArray[idx] || eng; });
             successCount++;
           } catch (chunkErr) {
             chunk.forEach(eng => dict[eng] = eng);
           }
-
           await new Promise(resolve => setTimeout(resolve, 300));
           setTranslatedTitles({ ...dict });
         }
-
-        if (successCount > 0) {
-          localStorage.setItem(cacheKey, JSON.stringify(dict));
-        }
+        if (successCount > 0) localStorage.setItem(cacheKey, JSON.stringify(dict));
       } catch (e) {
         console.error("Auto-translation critically failed", e);
       } finally {
@@ -126,7 +107,7 @@ export default function CountryPath() {
     };
 
     translateAll();
-  }, [language, countryId, traditionalPaths, bonusPaths]);
+  }, [language, countryId]);
 
   const query = searchQuery.toLowerCase().trim();
   const filterPath = (path: string, idx: number, isPremiumRoute: boolean) => {
@@ -163,41 +144,50 @@ export default function CountryPath() {
             navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
           }
         }}
-        className={`flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer transition-colors duration-200 ${
+        // ✅ FIX 1: Removed transition-colors — on Android, CSS transitions on
+        // 150+ cards during scroll cause the GPU compositor to promote every
+        // card to its own layer, exhausting VRAM and producing the glitch.
+        // ✅ FIX 2: Removed bg-opacity/semi-transparent backgrounds from cards.
+        // rgba() backgrounds force "alpha compositing" on every card during scroll.
+        // Replaced with solid equivalents that the GPU can skip compositing for.
+        // ✅ FIX 3: Added [contain:layout_style] — this tells the browser each
+        // card is a self-contained paint region, preventing scroll from
+        // invalidating the entire page layout on every frame.
+        style={{ contain: 'layout style' }}
+        className={`flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer ${
           isTranslating && !translatedTitles[path] ? "opacity-70" : ""
         } ${
           isPremiumRoute
             ? hasPremiumAccess
-              ? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
-              : "border-yellow-500/10 bg-black hover:bg-yellow-500/5"
-            : "border-white/10 bg-[#111111] hover:bg-white/5 hover:border-purple-500/30"
+              ? "border-yellow-600 bg-[#1a1200] active:bg-[#221800]"
+              : "border-yellow-900 bg-black active:bg-[#1a1200]"
+            : "border-white/10 bg-[#111111] active:bg-[#1a1a1a]"
         }`}
       >
         <div className="flex items-start justify-between gap-1 sm:gap-2">
-          <span
-            className={`font-semibold text-sm sm:text-base leading-snug break-words ${isPremiumRoute ? "text-yellow-400" : "text-white/90 group-hover:text-white"}`}
-          >
+          <span className={`font-semibold text-sm sm:text-base leading-snug break-words ${
+            isPremiumRoute ? "text-yellow-400" : "text-white/90"
+          }`}>
             {displayTitle}
           </span>
-          {isPremiumRoute &&
-            (isLocked ? (
-              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500/50 shrink-0 mt-1" />
-            ) : (
-              <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-1" />
-            ))}
+          {isPremiumRoute && (
+            isLocked
+              ? <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-700 shrink-0 mt-1" />
+              : <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-1" />
+          )}
         </div>
 
         <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3 min-h-[24px]">
           {isLocked ? (
-            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider mr-auto">
+            <span className="text-[10px] sm:text-xs font-bold text-yellow-700 uppercase tracking-wider mr-auto">
               {ui.premiumBadge}
             </span>
           ) : (
-            <div className="mr-auto"></div>
+            <div className="mr-auto" />
           )}
-          <ChevronRight
-            className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremiumRoute ? "text-yellow-500/40" : "text-white/20 group-hover:text-purple-400"}`}
-          />
+          <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 ${
+            isPremiumRoute ? "text-yellow-700" : "text-white/20"
+          }`} />
         </div>
       </div>
     );
@@ -234,13 +224,13 @@ export default function CountryPath() {
                 {isTranslating && <Loader2 className="w-4 h-4 animate-spin text-purple-500" />}
                 {ui.lang}
               </span>
-              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner">
+              <div className="flex bg-[#111] p-1 rounded-xl border border-white/10">
                 <button
                   onClick={() => setLanguage("English")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "English"
-                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                      ? "bg-purple-500 text-white"
+                      : "text-gray-400"
                   }`}
                 >
                   English
@@ -249,8 +239,8 @@ export default function CountryPath() {
                   onClick={() => setLanguage("Native")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "Native"
-                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                      ? "bg-purple-500 text-white"
+                      : "text-gray-400"
                   }`}
                 >
                   Native
@@ -260,13 +250,13 @@ export default function CountryPath() {
           )}
         </div>
 
-        <div className="max-w-2xl mx-auto mb-16 relative group mt-8">
+        <div className="max-w-2xl mx-auto mb-16 relative mt-8">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="w-5 h-5 text-gray-400 group-focus-within:text-purple-400 transition-colors" />
+            <Search className="w-5 h-5 text-gray-400" />
           </div>
           <input
             type="text"
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white/10 transition-all text-base sm:text-lg shadow-xl"
+            className="w-full bg-[#111] border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base sm:text-lg"
             placeholder={`${ui.search} ${COUNTRIES[countryId]}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -274,7 +264,7 @@ export default function CountryPath() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white transition-colors"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500"
             >
               <XCircle className="w-5 h-5" />
             </button>
@@ -283,7 +273,7 @@ export default function CountryPath() {
 
         {totalResults === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
+            <div className="w-20 h-20 bg-[#111] rounded-full flex items-center justify-center mb-6">
               <Search className="w-10 h-10 text-gray-500" />
             </div>
             <h2 className="text-2xl font-bold mb-2">{ui.noResults}</h2>
@@ -297,9 +287,15 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3">
                   {ui.traditional}
-                  <div className="h-px bg-white/20 flex-grow ml-4"></div>
+                  <div className="h-px bg-white/20 flex-grow ml-4" />
                 </h2>
-                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                {/* ✅ FIX 4: Added [content-visibility:auto] on the grid container.
+                    The browser will skip rendering off-screen cards entirely,
+                    so scrolling through 150+ cards no longer tanks the GPU. */}
+                <div
+                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
+                  style={{ contentVisibility: 'auto' }}
+                >
                   {filteredTraditional.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
@@ -309,12 +305,13 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-purple-300">
                   <span className="shrink-0">{ui.bonus}</span>
-                  <span className="text-xs sm:text-sm font-normal text-purple-300/60 hidden sm:inline shrink-0">
-                    {ui.bonusSub}
-                  </span>
-                  <div className="h-px bg-purple-500/30 flex-grow ml-2 sm:ml-4"></div>
+                  <span className="text-xs sm:text-sm font-normal text-purple-300/60 hidden sm:inline shrink-0">{ui.bonusSub}</span>
+                  <div className="h-px bg-purple-500/30 flex-grow ml-2 sm:ml-4" />
                 </h2>
-                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                <div
+                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
+                  style={{ contentVisibility: 'auto' }}
+                >
                   {filteredBonus.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
@@ -324,12 +321,13 @@ export default function CountryPath() {
               <div className="mb-16">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-6 sm:mb-8 flex items-center gap-3 text-yellow-500">
                   <span className="shrink-0">{ui.premium}</span>
-                  <span className="text-xs sm:text-sm font-normal text-yellow-500/60 hidden sm:inline shrink-0">
-                    {ui.premiumSub}
-                  </span>
-                  <div className="h-px bg-yellow-500/30 flex-grow ml-2 sm:ml-4"></div>
+                  <span className="text-xs sm:text-sm font-normal text-yellow-500/60 hidden sm:inline shrink-0">{ui.premiumSub}</span>
+                  <div className="h-px bg-yellow-500/30 flex-grow ml-2 sm:ml-4" />
                 </h2>
-                <div className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                <div
+                  className="w-full grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4"
+                  style={{ contentVisibility: 'auto' }}
+                >
                   {filteredPremium.map((item) => renderCard(item.path, item.idx, item.isPremium))}
                 </div>
               </div>
