@@ -52,7 +52,6 @@ export default function CountryPath() {
 
   const ui = (language === "Native" && UI_DICT[countryId]) ? UI_DICT[countryId] : UI_DICT['en'];
 
-  // FIX: This is the missing function that caused the TypeScript error
   const getNativeTitle = (path: string, idx: number, isPremiumRoute: boolean) => {
     if (!supportsNative || language === "English") return path;
     if (isPremiumRoute) return nativePremiumRoadmaps[countryId]?.[idx - 100] || path;
@@ -91,7 +90,7 @@ export default function CountryPath() {
                 
                 try {
                     const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
-                    if (!res.ok) throw new Error("Translation blocked by Google.");
+                    if (!res.ok) throw new Error("Translation blocked.");
                     
                     const data = await res.json();
                     
@@ -123,7 +122,6 @@ export default function CountryPath() {
     translateAll();
   }, [language, countryId, traditionalPaths, bonusPaths]);
 
-  // Dual-Language Search Filter
   const query = searchQuery.toLowerCase().trim();
   const filterPath = (path: string, idx: number, isPremiumRoute: boolean) => {
     const engTitle = path.toLowerCase();
@@ -159,21 +157,21 @@ export default function CountryPath() {
             navigate(`/${countryId}/roadmap/${encodeURIComponent(path)}?lang=${language}`);
           }
         }}
-        // FIX: Stripped all shadow-lg, backdrop-blur, and transform-gpu from here! 
-        // This is now purely flat CSS so your phone GPU doesn't melt.
-        className={`pathway-card flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer ${
+        // FIX 1: Stripped 'transition-all' to 'transition-colors'. 'transition-all' causes mobile frame drops.
+        // FIX 2: Used standard Tailwind colors (bg-yellow-500/5) instead of arbitrary hex codes (#1a1500).
+        className={`flex flex-col justify-between p-4 sm:p-5 min-h-[100px] sm:min-h-[120px] rounded-xl border group cursor-pointer transition-colors duration-200 ${
           isTranslating && !translatedTitles[path] ? "opacity-70" : ""
         } ${
           isPremiumRoute
             ? hasPremiumAccess
-              ? "border-yellow-500/30 bg-[#1a1500] hover:bg-yellow-900/30 hover:border-yellow-500/50"
-              : "border-yellow-500/10 bg-[#110d00] hover:bg-yellow-900/20"
-            : "border-white/10 bg-[#111] hover:bg-white/5 hover:border-purple-500/30"
+              ? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
+              : "border-yellow-500/10 bg-black hover:bg-yellow-500/5"
+            : "border-white/10 bg-[#111111] hover:bg-white/5 hover:border-purple-500/30"
         }`}
       >
         <div className="flex items-start justify-between gap-1 sm:gap-2">
           <span
-            className={`font-semibold text-sm sm:text-base leading-snug break-words ${isPremiumRoute ? "text-yellow-200/90" : "text-white/90"}`}
+            className={`font-semibold text-sm sm:text-base leading-snug break-words ${isPremiumRoute ? "text-yellow-400" : "text-white/90 group-hover:text-white"}`}
           >
             {displayTitle}
           </span>
@@ -181,14 +179,18 @@ export default function CountryPath() {
             (isLocked ? (
               <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500/50 shrink-0 mt-1" />
             ) : (
-              <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500 shrink-0 mt-1" />
+              <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-1" />
             ))}
         </div>
-        <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3">
-          {isLocked && (
-            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider">
+        
+        {/* FIX 3: Added min-h-[24px] to completely stop the layout from collapsing when 'Premium' badge is hidden */}
+        <div className="flex justify-end mt-3 sm:mt-4 items-center gap-2 sm:gap-3 min-h-[24px]">
+          {isLocked ? (
+            <span className="text-[10px] sm:text-xs font-bold text-yellow-600/80 uppercase tracking-wider mr-auto">
               {ui.premiumBadge}
             </span>
+          ) : (
+            <div className="mr-auto"></div> // Forces Chevron to stay on the right even without the badge
           )}
           <ChevronRight
             className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremiumRoute ? "text-yellow-500/40" : "text-white/20 group-hover:text-purple-400"}`}
@@ -234,7 +236,7 @@ export default function CountryPath() {
                   onClick={() => setLanguage("English")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "English" 
-                      ? "bg-purple-500 text-white" 
+                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -244,7 +246,7 @@ export default function CountryPath() {
                   onClick={() => setLanguage("Native")}
                   className={`px-4 sm:px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                     language === "Native" 
-                      ? "bg-purple-500 text-white" 
+                      ? "bg-purple-500 text-white shadow-md shadow-purple-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
