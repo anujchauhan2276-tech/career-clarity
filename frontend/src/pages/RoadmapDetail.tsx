@@ -382,7 +382,7 @@ export default function RoadmapDetail() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 md:px-10 max-w-5xl" ref={containerRef}>
+      <div className="container mx-auto px-4 md:px-10 max-w-5xl" ref={containerRef} style={{ contain: "layout style" }}>
 
         {/* Navigation Breadcrumb */}
         <button
@@ -443,7 +443,7 @@ export default function RoadmapDetail() {
                 {data.roadmapSteps.map((step, i) => {
                   const isCompleted = completedSteps.includes(step.step);
                   return (
-                    <div key={i} className="relative pl-8 md:pl-12">
+                    <div key={i} className="relative pl-8 md:pl-12" style={{ contain: "paint" }}>
                       {/* Node */}
                       <button
                         onClick={() => toggleStep(step.step)}
@@ -552,7 +552,7 @@ export default function RoadmapDetail() {
             </div>
 
             {/* 5. FUTURE OUTLOOK */}
-            <div className="space-y-6">
+            <div className="space-y-6" style={{ contain: "layout paint" }}>
               <TintBox color="purple" rounded="2xl" className="p-6 md:p-10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-24 h-24" />
