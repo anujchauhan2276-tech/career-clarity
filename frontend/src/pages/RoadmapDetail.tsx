@@ -59,6 +59,52 @@ interface RoadmapData {
 
 /**
  * ============================================================================
+ * COLOR TOKENS — single source of truth
+ * ============================================================================
+ * Every tinted box on this page pulls from this one object. Literal hex
+ * values, no Tailwind opacity modifiers (no /10, /20, /40 etc). Opacity
+ * modifiers compute a different effective color depending on what's
+ * stacked behind the element, which is why the "Avoid" boxes and other
+ * tinted panels were rendering as two different shades of the same color
+ * (a visible seam) instead of one flat color. A literal hex value always
+ * renders identically no matter what's behind it.
+ */
+const TINT = {
+  red:    { bg: "#3F1212", border: "#6B2323", text: "#FCA5A5", icon: "#F87171" },
+  blue:   { bg: "#12233F", border: "#23416B", text: "#93C5FD", icon: "#60A5FA" },
+  green:  { bg: "#15311E", border: "#276640", text: "#86EFAC", icon: "#4ADE80" },
+  purple: { bg: "#241B3F", border: "#3F2E6B", text: "#C4B5FD", icon: "#A78BFA" },
+  yellow: { bg: "#3F3212", border: "#6B5423", text: "#FDE68A", icon: "#FBBF24" },
+  orange: { bg: "#3F2512", border: "#6B3F23", text: "#FDBA74", icon: "#FB923C" },
+} as const;
+
+type TintColor = keyof typeof TINT;
+
+/** A bounded box with one flat tinted background. Always the same color, every time. */
+const TintBox = ({
+  color,
+  rounded = "xl",
+  className = "",
+  children,
+}: {
+  color: TintColor;
+  rounded?: "xl" | "2xl";
+  className?: string;
+  children: React.ReactNode;
+}) => {
+  const t = TINT[color];
+  return (
+    <div
+      className={`${rounded === "2xl" ? "rounded-2xl" : "rounded-xl"} border ${className}`}
+      style={{ backgroundColor: t.bg, borderColor: t.border }}
+    >
+      {children}
+    </div>
+  );
+};
+
+/**
+ * ============================================================================
  * REUSABLE UI SUB-COMPONENTS
  * ============================================================================
  */
@@ -67,7 +113,7 @@ const SectionLabel = ({ icon: Icon, title, subtitle }: { icon: any, title: strin
   <div className="mb-4">
     <div className="flex items-center gap-2 mb-1">
       <div className="p-1.5 bg-white/5 rounded-md border border-white/10">
-        <Icon className="w-3.5 h-3.5 text-purple-400" />
+        <Icon className="w-3.5 h-3.5" style={{ color: TINT.purple.icon }} />
       </div>
       <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">{title}</h2>
     </div>
@@ -75,16 +121,13 @@ const SectionLabel = ({ icon: Icon, title, subtitle }: { icon: any, title: strin
   </div>
 );
 
-const StatusBadge = ({ children, color = "purple" }: { children: React.ReactNode, color?: string }) => {
-  const colorMap: Record<string, string> = {
-    purple: "bg-purple-500/20 border-purple-500/30 text-purple-300",
-    green: "bg-green-500/20 border-green-500/30 text-green-300",
-    blue: "bg-blue-500/20 border-blue-500/30 text-blue-300",
-    orange: "bg-orange-500/20 border-orange-500/30 text-orange-300",
-    red: "bg-red-500/20 border-red-500/30 text-red-300",
-  };
+const StatusBadge = ({ children, color = "purple" as TintColor }: { children: React.ReactNode, color?: TintColor }) => {
+  const t = TINT[color];
   return (
-    <span className={`px-2.5 py-0.5 border rounded-md text-[9px] font-bold tracking-wider uppercase ${colorMap[color]}`}>
+    <span
+      className="px-2.5 py-0.5 border rounded-md text-[9px] font-bold tracking-wider uppercase"
+      style={{ backgroundColor: t.bg, borderColor: t.border, color: t.text }}
+    >
       {children}
     </span>
   );
@@ -107,7 +150,6 @@ const LanguageToggle = ({
 }) => {
   const baseBtn =
     "px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors duration-150";
-  const active = "bg-purple-500 text-white";
   const inactive = "bg-transparent text-white/40 hover:text-white/70";
 
   return (
@@ -115,14 +157,16 @@ const LanguageToggle = ({
       <button
         type="button"
         onClick={() => onChange("English")}
-        className={`${baseBtn} ${value === "English" ? active : inactive}`}
+        className={`${baseBtn} ${value === "English" ? "text-white" : inactive}`}
+        style={value === "English" ? { backgroundColor: "#7C3AED" } : undefined}
       >
         English
       </button>
       <button
         type="button"
         onClick={() => onChange("Native")}
-        className={`${baseBtn} ${value === "Native" ? active : inactive}`}
+        className={`${baseBtn} ${value === "Native" ? "text-white" : inactive}`}
+        style={value === "Native" ? { backgroundColor: "#7C3AED" } : undefined}
       >
         {nativeLabel}
       </button>
@@ -441,32 +485,32 @@ export default function RoadmapDetail() {
                         {/* Milestones & Anti-patterns */}
                         <div className="grid md:grid-cols-2 gap-3">
                           {step.milestones.length > 0 && (
-                            <div className="p-4 bg-blue-950/40 border border-blue-500/30 rounded-xl">
-                              <h4 className="text-[8px] font-black uppercase tracking-widest text-blue-300 mb-2 flex items-center gap-2">
+                            <TintBox color="blue" className="p-4">
+                              <h4 className="text-[8px] font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: TINT.blue.text }}>
                                 <Zap className="w-2.5 h-2.5" /> Checkpoints
                               </h4>
                               <ul className="space-y-2">
                                 {step.milestones.map((m, mIdx) => (
                                   <li key={mIdx} className="text-xs text-white/70 flex gap-2 leading-relaxed">
-                                    <span className="text-blue-400 font-bold">•</span> {m}
+                                    <span className="font-bold" style={{ color: TINT.blue.icon }}>•</span> {m}
                                   </li>
                                 ))}
                               </ul>
-                            </div>
+                            </TintBox>
                           )}
                           {step.antiPatterns && step.antiPatterns.length > 0 && (
-                            <div className="p-4 bg-red-950/40 border border-red-500/30 rounded-xl">
-                               <h4 className="text-[8px] font-black uppercase tracking-widest text-red-300 mb-2 flex items-center gap-2">
+                            <TintBox color="red" className="p-4">
+                               <h4 className="text-[8px] font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: TINT.red.text }}>
                                 <ShieldAlert className="w-2.5 h-2.5" /> Avoid
                               </h4>
                               <ul className="space-y-2">
                                 {step.antiPatterns.map((a, aIdx) => (
                                   <li key={aIdx} className="text-xs text-white/60 flex gap-2 leading-relaxed italic">
-                                    <span className="text-red-400 font-black">×</span> {a}
+                                    <span className="font-black" style={{ color: TINT.red.icon }}>×</span> {a}
                                   </li>
                                 ))}
                               </ul>
-                            </div>
+                            </TintBox>
                           )}
                         </div>
                       </div>
@@ -478,72 +522,72 @@ export default function RoadmapDetail() {
 
             {/* 4. PROS & CONS */}
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-                <div className="p-6 bg-green-950/40 border border-green-500/30 rounded-2xl">
+                <TintBox color="green" rounded="2xl" className="p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    <h3 className="text-base font-bold text-green-300">Pros</h3>
+                    <CheckCircle2 className="w-4 h-4" style={{ color: TINT.green.icon }} />
+                    <h3 className="text-base font-bold" style={{ color: TINT.green.text }}>Pros</h3>
                   </div>
                   <ul className="space-y-3">
                     {data.pros.map((p, i) => (
                       <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-green-400 mt-1.5 shrink-0"></div> {p}
+                        <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.green.icon }}></div> {p}
                       </li>
                     ))}
                   </ul>
-                </div>
+                </TintBox>
 
-                <div className="p-6 bg-red-950/40 border border-red-500/30 rounded-2xl">
+                <TintBox color="red" rounded="2xl" className="p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <XCircle className="w-4 h-4 text-red-400" />
-                    <h3 className="text-base font-bold text-red-300">Cons</h3>
+                    <XCircle className="w-4 h-4" style={{ color: TINT.red.icon }} />
+                    <h3 className="text-base font-bold" style={{ color: TINT.red.text }}>Cons</h3>
                   </div>
                   <ul className="space-y-3">
                     {data.cons.map((c, i) => (
                       <li key={i} className="flex items-start gap-3 text-white/70 text-sm leading-relaxed">
-                        <div className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0"></div> {c}
+                        <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: TINT.red.icon }}></div> {c}
                       </li>
                     ))}
                   </ul>
-                </div>
+                </TintBox>
             </div>
 
             {/* 5. FUTURE OUTLOOK */}
             <div className="space-y-6">
-              <div className="p-6 md:p-10 bg-purple-950/40 border border-purple-500/30 rounded-2xl relative overflow-hidden">
+              <TintBox color="purple" rounded="2xl" className="p-6 md:p-10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
                    <TrendingUp className="w-24 h-24" />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold mb-4 text-purple-300">Future Outlook</h3>
+                <h3 className="text-xl md:text-2xl font-bold mb-4" style={{ color: TINT.purple.text }}>Future Outlook</h3>
                 <p className="text-sm md:text-base text-white/60 leading-relaxed mb-6">{data.future}</p>
-                <div className="p-3 bg-purple-500/20 rounded-xl border border-purple-500/30 inline-flex items-center gap-2">
-                   <Award className="w-4 h-4 text-purple-300" />
-                   <p className="text-purple-200 text-[10px] font-bold uppercase tracking-wider">{data.opportunity}</p>
+                <div className="p-3 rounded-xl border inline-flex items-center gap-2" style={{ backgroundColor: TINT.purple.border, borderColor: TINT.purple.border }}>
+                   <Award className="w-4 h-4" style={{ color: TINT.purple.text }} />
+                   <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TINT.purple.text }}>{data.opportunity}</p>
                 </div>
-              </div>
+              </TintBox>
 
               {/* 6. HOW TO START */}
-              <div className="p-6 md:p-10 bg-blue-950/40 border border-blue-500/30 rounded-2xl">
-                <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-300">How to Start</h3>
+              <TintBox color="blue" rounded="2xl" className="p-6 md:p-10">
+                <h3 className="text-xl md:text-2xl font-bold mb-6" style={{ color: TINT.blue.text }}>How to Start</h3>
                 <div className="space-y-3 mb-8">
                   {data.howTo.map((h, i) => (
                     <div key={i} className="flex items-center gap-4 p-2 hover:bg-white/[0.02] rounded-xl transition-colors">
-                      <span className="text-lg font-bold text-blue-400/30">{i+1}.</span>
+                      <span className="text-lg font-bold" style={{ color: TINT.blue.icon }}>{i+1}.</span>
                       <p className="text-white/70 text-sm md:text-base">{h}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Pro Tip */}
-                <div className="p-4 bg-yellow-950/40 border border-yellow-500/30 rounded-xl flex gap-4 items-start">
-                  <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
+                <TintBox color="yellow" className="p-4 flex gap-4 items-start">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: TINT.yellow.border }}>
+                    <Lightbulb className="w-4 h-4" style={{ color: TINT.yellow.icon }} />
                   </div>
                   <div>
-                    <h4 className="text-yellow-300/60 font-black tracking-widest uppercase text-[8px] mb-1">Pro Tip</h4>
-                    <p className="text-yellow-100/80 text-sm leading-relaxed italic">"{data.proTip}"</p>
+                    <h4 className="font-black tracking-widest uppercase text-[8px] mb-1" style={{ color: TINT.yellow.text }}>Pro Tip</h4>
+                    <p className="text-sm leading-relaxed italic" style={{ color: TINT.yellow.text }}>"{data.proTip}"</p>
                   </div>
-                </div>
-              </div>
+                </TintBox>
+              </TintBox>
 
               {/* 7. RESOURCES */}
               {data.links.length > 0 && (
